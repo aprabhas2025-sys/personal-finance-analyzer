@@ -1,7 +1,7 @@
 """INTERFACE CONTRACT between Person A and Person B.
 
 Person B calls these three functions. Person A replaces the dummy bodies with the real
-models on Days 2-4. Signatures and return columns MUST NOT change.
+models on Days 2-4 (categorize: Day 2, anomalies + recurring: Day 3, forecast: Day 4). Signatures and return columns MUST NOT change.
 """
 import pandas as pd
 
@@ -41,16 +41,19 @@ def reload_model():
 
 
 def find_anomalies(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a copy of df with `is_anomaly` (0/1) and `anomaly_reason` (str) columns. (Day 3)"""
-    out = df.copy()
-    out["is_anomaly"] = 0           # DUMMY
-    out["anomaly_reason"] = ""
-    return out
+    """Return a copy of df with `is_anomaly` (0/1) and `anomaly_reason` (str) columns.
+
+    Signals: duplicate charges, per-category robust z-score, Isolation Forest, new-merchant
+    large spend. Details and thresholds live in ml/anomalies.py.
+    """
+    from ml import anomalies
+    return anomalies.find_anomalies(df)
 
 
 def find_recurring(df: pd.DataFrame) -> pd.DataFrame:
-    """Return one row per recurring payment: merchant, avg_amount, frequency_days, last_seen, next_due. (Day 3)"""
-    return pd.DataFrame(columns=["merchant", "avg_amount", "frequency_days", "last_seen", "next_due"])  # DUMMY
+    """Return one row per recurring payment: merchant, avg_amount, frequency_days, last_seen, next_due."""
+    from ml import recurring
+    return recurring.find_recurring(df)
 
 
 def forecast(df: pd.DataFrame) -> pd.DataFrame:

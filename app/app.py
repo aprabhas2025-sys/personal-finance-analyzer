@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app import db
+from app import dashboard, db
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
@@ -92,7 +92,10 @@ c3.metric("Received", f"₹{received:,.0f}")
 c4.metric("Need review", n_review, help="Low-confidence ML predictions worth checking")
 
 # ---------------- tabs ----------------
-tab_tx, tab_cat, tab_month = st.tabs(["Transactions", "By category", "Monthly spend"])
+tab_dash, tab_tx, tab_cat, tab_month = st.tabs(["Dashboard", "Transactions", "By category", "Monthly spend"])
+
+with tab_dash:
+    dashboard.render(f, df)
 
 with tab_tx:
     view = f.assign(date=f["date"].dt.date, confidence=f["confidence"].round(2))
