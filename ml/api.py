@@ -8,11 +8,36 @@ import pandas as pd
 from ml.schema import UNCATEGORIZED
 
 
+REVIEW_THRESHOLD = 0.7   # below this, a prediction is flagged "needs review" in the app
+_pipe = None
+
+
 def categorize(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a copy of df with the `category` column filled in. (Day 2)"""
+    """Fill `category` for rows that are Uncategorized using the hybrid (rules + ML) model.
+
+    Also adds two columns: `confidence` (0-1; 1.0 when a rule fired) and `category_source`
+    ('rule' | 'ml' | 'existing'). Rows that already have a category are left untouched.
+    """
+    global _pipe
+    from ml import categorizer as C
+    if _pipe is None:
+        _pipe = C.load()          # None -> rules-only fallback if the model file is missing
     out = df.copy()
-    out["category"] = out["category"].where(out["category"] != UNCATEGORIZED, "Shopping")  # DUMMY
+    todo = out["category"] == UNCATEGORIZED
+    out["confidence"] = 1.0
+    out["category_source"] = "existing"
+    if todo.any():
+        cats, conf, src = C.predict(out[todo], _pipe, "hybrid")
+        out.loc[todo, "category"] = cats
+        out.loc[todo, "confidence"] = conf
+        out.loc[todo, "category_source"] = src
     return out
+
+
+def reload_model():
+    """Call after retraining so the next categorize() uses the new model."""
+    global _pipe
+    _pipe = None
 
 
 def find_anomalies(df: pd.DataFrame) -> pd.DataFrame:

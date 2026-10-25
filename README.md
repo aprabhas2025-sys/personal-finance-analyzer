@@ -8,7 +8,12 @@ detection, and a next-month forecast. Runs fully locally.
 pip install -r requirements.txt
 python -m ml.generate_data      # creates data/*.csv (already included)
 streamlit run app/app.py        # then click "Use sample data"
+python -m ml.train_categorizer  # train + evaluate categorizer (writes metrics/)
 python -m pytest -q             # run tests
+
+# Real-data accuracy (the resume number):
+python -m ml.real_eval export my_statement.csv to_label.csv   # label by hand, blind
+python -m ml.real_eval score to_label.csv
 ```
 
 ## Project layout
@@ -29,7 +34,7 @@ tests/
 
 ## Status
 - [x] Day 1: schema, synthetic data, CSV upload + cleaning, app skeleton, tests
-- [ ] Day 2: A: rule + ML categorizer (report F1 on data/eval_labeled.csv) | B: SQLite + table view
+- [x] Day 2: A: rules + TF-IDF/LR hybrid categorizer, evaluation | B: SQLite storage, filterable table, category chart
 - [ ] Day 3: A: anomalies + recurring | B: dashboard charts
 - [ ] Day 4: A: forecast + MAPE | B: anomaly/subscription pages, feedback button
 - [ ] Day 5: metrics write-up, README screenshots, demo video
@@ -37,6 +42,7 @@ tests/
 ## Metrics (fill with real numbers)
 | Metric | Value |
 |---|---|
-| Categorization macro-F1 (eval set) | TBD |
+| Categorization macro-F1, synthetic eval | 1.00 (circular: pipeline check only, see metrics/categorizer_report.md) |
+| Categorization macro-F1, REAL hand-labeled statement | TBD (run ml.real_eval) |
 | Anomaly precision / recall | TBD |
 | Forecast MAPE vs moving-average baseline | TBD |
