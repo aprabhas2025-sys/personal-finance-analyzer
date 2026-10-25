@@ -1,0 +1,290 @@
+{
+  "per_seed": {
+    "42": {
+      "moving_avg_3": {
+        "total_mape": 0.03818822758869409,
+        "category_wape": 0.24900275504578967,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.03449012620531397,
+        "category_wape": 0.2128097934636786,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.03843950034182538,
+        "category_wape": 0.23604828945546685,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.03395280374710264,
+        "category_wape": 0.26780628459129613,
+        "folds": 6
+      }
+    },
+    "1": {
+      "moving_avg_3": {
+        "total_mape": 0.0692248685056329,
+        "category_wape": 0.21003688547841154,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.06024126059375917,
+        "category_wape": 0.20608359307365837,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.06887296813733464,
+        "category_wape": 0.224819364820645,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.07428849609643066,
+        "category_wape": 0.23141843109642765,
+        "folds": 6
+      }
+    },
+    "2": {
+      "moving_avg_3": {
+        "total_mape": 0.10378554108098477,
+        "category_wape": 0.23325190868197584,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.0957275905560574,
+        "category_wape": 0.2233885815186362,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.11950391350167487,
+        "category_wape": 0.22360711540556502,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.10383907695601198,
+        "category_wape": 0.2572456547932891,
+        "folds": 6
+      }
+    },
+    "3": {
+      "moving_avg_3": {
+        "total_mape": 0.09753217376605174,
+        "category_wape": 0.2864329270350607,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.08372922590369887,
+        "category_wape": 0.2274584028462789,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.10589526314678381,
+        "category_wape": 0.2657020498015119,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.1148598503634034,
+        "category_wape": 0.28257640525973005,
+        "folds": 6
+      }
+    },
+    "4": {
+      "moving_avg_3": {
+        "total_mape": 0.031029034156048404,
+        "category_wape": 0.2034185575929755,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.041930386822552464,
+        "category_wape": 0.2079364011177669,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.05340812975177445,
+        "category_wape": 0.25073679954184813,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.07021581196959524,
+        "category_wape": 0.269136733162352,
+        "folds": 6
+      }
+    },
+    "5": {
+      "moving_avg_3": {
+        "total_mape": 0.022992376700444267,
+        "category_wape": 0.19230493437867865,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.02609237674048807,
+        "category_wape": 0.17234721970200562,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.03658251750122727,
+        "category_wape": 0.18360133400448883,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.03408771711608287,
+        "category_wape": 0.211199941992001,
+        "folds": 6
+      }
+    },
+    "6": {
+      "moving_avg_3": {
+        "total_mape": 0.09462957966299416,
+        "category_wape": 0.24487485129391923,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.08144234214811662,
+        "category_wape": 0.22019934648933395,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.11142974670925622,
+        "category_wape": 0.2535850679321367,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.10080105622064521,
+        "category_wape": 0.26372880788149905,
+        "folds": 6
+      }
+    },
+    "7": {
+      "moving_avg_3": {
+        "total_mape": 0.06127974440919553,
+        "category_wape": 0.2311481067313488,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.0844680748501399,
+        "category_wape": 0.23183641678018066,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.08139421137260268,
+        "category_wape": 0.26678486437307475,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.10242237644358286,
+        "category_wape": 0.30965681108108756,
+        "folds": 6
+      }
+    },
+    "8": {
+      "moving_avg_3": {
+        "total_mape": 0.06004289177136409,
+        "category_wape": 0.20192626244103323,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.0433462077618413,
+        "category_wape": 0.1926555488783201,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.05169504653619799,
+        "category_wape": 0.19039349809651135,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.06409342859091174,
+        "category_wape": 0.22378790237267093,
+        "folds": 6
+      }
+    },
+    "9": {
+      "moving_avg_3": {
+        "total_mape": 0.14190986753405435,
+        "category_wape": 0.23383603969615077,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.10835968294476088,
+        "category_wape": 0.22710237963690985,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.11470654665245528,
+        "category_wape": 0.24382745923058724,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.14811167618187385,
+        "category_wape": 0.3001809359768333,
+        "folds": 6
+      }
+    },
+    "10": {
+      "moving_avg_3": {
+        "total_mape": 0.06847490763908376,
+        "category_wape": 0.253559328762088,
+        "folds": 6
+      },
+      "mean_all": {
+        "total_mape": 0.06031375321656179,
+        "category_wape": 0.23569553651687275,
+        "folds": 6
+      },
+      "ses": {
+        "total_mape": 0.06550913301962095,
+        "category_wape": 0.263979301348363,
+        "folds": 6
+      },
+      "ets_damped": {
+        "total_mape": 0.09827974468070799,
+        "category_wape": 0.2803010309500076,
+        "folds": 6
+      }
+    }
+  },
+  "aggregate": {
+    "moving_avg_3": {
+      "total_mape": [
+        0.07173538298314074,
+        0.03379423944308313
+      ],
+      "category_wape": [
+        0.23089023246703927,
+        0.026378581993335648
+      ]
+    },
+    "mean_all": {
+      "total_mape": [
+        0.06546736615848094,
+        0.02578290566084438
+      ],
+      "category_wape": [
+        0.21431938363851294,
+        0.01798606365629809
+      ]
+    },
+    "ses": {
+      "total_mape": [
+        0.07703972515188667,
+        0.02982295098001185
+      ],
+      "category_wape": [
+        0.23664410400092717,
+        0.027469057139687943
+      ]
+    },
+    "ets_damped": {
+      "total_mape": [
+        0.08590473076057713,
+        0.03291647209964112
+      ],
+      "category_wape": [
+        0.26336717628701767,
+        0.029469540441330974
+      ]
+    }
+  },
+  "shipped": "mean_all",
+  "folds_per_seed": 6
+}

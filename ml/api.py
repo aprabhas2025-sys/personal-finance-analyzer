@@ -3,9 +3,15 @@
 Person B calls these three functions. Person A replaces the dummy bodies with the real
 models on Days 2-4 (categorize: Day 2, anomalies + recurring: Day 3, forecast: Day 4). Signatures and return columns MUST NOT change.
 """
+from pathlib import Path
+
 import pandas as pd
 
 from ml.schema import UNCATEGORIZED
+
+# Model retrained from user corrections (Day 4). Kept separate from the shipped model so a deploy
+# is never polluted, and gitignored. categorize() prefers it when it exists.
+USER_MODEL_PATH = Path(__file__).resolve().parent / "models" / "categorizer_user.joblib"
 
 
 REVIEW_THRESHOLD = 0.7   # below this, a prediction is flagged "needs review" in the app
@@ -21,7 +27,7 @@ def categorize(df: pd.DataFrame) -> pd.DataFrame:
     global _pipe
     from ml import categorizer as C
     if _pipe is None:
-        _pipe = C.load()          # None -> rules-only fallback if the model file is missing
+        _pipe = C.load(USER_MODEL_PATH) or C.load()   # user-corrected model first; None -> rules-only fallback
     out = df.copy()
     todo = out["category"] == UNCATEGORIZED
     out["confidence"] = 1.0
@@ -57,7 +63,9 @@ def find_recurring(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def forecast(df: pd.DataFrame) -> pd.DataFrame:
-    """Return next-month forecast: columns category, forecast_amount. (Day 4)"""
-    d = df[df["type"] == "debit"]
-    m = d.groupby("category")["amount"].sum() / max(d["date"].dt.to_period("M").nunique(), 1)  # DUMMY: avg
-    return m.rename("forecast_amount").reset_index()
+    """Return next-month forecast: columns category, forecast_amount (debit categories, largest first).
+
+    Method chosen by rolling-origin backtest (ml/forecast.py, metrics/forecast_report.md).
+    """
+    from ml import forecast as F
+    return F.forecast_table(df)

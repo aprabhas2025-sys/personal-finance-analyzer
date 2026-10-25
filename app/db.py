@@ -65,6 +65,18 @@ def update_category(ids, category, path=None) -> int:
         return cur.rowcount
 
 
+def apply_predictions(rows: pd.DataFrame, path=None) -> int:
+    """Write fresh model output back (columns: id, category, confidence, category_source) WITHOUT marking it as user-corrected.
+    Rows whose source is currently 'user' are never overwritten."""
+    if rows is None or rows.empty:
+        return 0
+    data = [(r.category, float(r.confidence), r.category_source, int(r.id)) for r in rows.itertuples()]
+    with _conn(path) as c:
+        cur = c.executemany(
+            "UPDATE transactions SET category=?, confidence=?, category_source=? WHERE id=? AND category_source != 'user'", data)
+        return cur.rowcount
+
+
 def clear(path=None):
     with _conn(path) as c:
         c.execute("DELETE FROM transactions")

@@ -2,4 +2,4 @@ __pycache__/
 *.pyc
 .pytest_cache/
 data/finance.db
-venv/
+ml/models/categorizer_user.joblib

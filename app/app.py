@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app import dashboard, db
+from app import dashboard, db, insights
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
@@ -92,7 +92,8 @@ c3.metric("Received", f"₹{received:,.0f}")
 c4.metric("Need review", n_review, help="Low-confidence ML predictions worth checking")
 
 # ---------------- tabs ----------------
-tab_dash, tab_tx, tab_cat, tab_month = st.tabs(["Dashboard", "Transactions", "By category", "Monthly spend"])
+tab_dash, tab_tx, tab_anom, tab_subs, tab_fc, tab_cat, tab_month = st.tabs(
+    ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend"])
 
 with tab_dash:
     dashboard.render(f, df)
@@ -105,6 +106,16 @@ with tab_tx:
         column_config={"amount": st.column_config.NumberColumn(format="₹%.2f"),
                        "confidence": st.column_config.ProgressColumn(min_value=0, max_value=1, format="%.2f")})
     st.download_button("Download filtered CSV", f.drop(columns=["id"]).to_csv(index=False), "transactions.csv", "text/csv")
+    insights.render_review(f, df)
+
+with tab_anom:
+    insights.render_anomalies(f, df)
+
+with tab_subs:
+    insights.render_subscriptions(df)
+
+with tab_fc:
+    insights.render_forecast(df)
 
 with tab_cat:
     spend = f[f["type"] == "debit"].groupby("category", as_index=False)["amount"].sum().sort_values("amount")
