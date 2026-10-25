@@ -47,6 +47,9 @@ app/       Person B: Streamlit app
   dashboard.py      Dashboard tab: KPIs, charts, unusual transactions, recurring payments
   config.py         local vs hosted mode (RENDER / FINANCE_HOSTED) and the matching privacy captions
   db.py             SQLite storage; one file per browser session (data/sessions/<id>.db), idle ones purged after 24 h
+  chat_tools.py     read-only aggregate queries over the statement (spend, savings, merchants, subscriptions, anomalies, forecast)
+  chatbot.py        'Ask' assistant: Claude tool-use over chat_tools, or keyword rules when AI is off / no key
+  chat_ui.py        the Ask tab (AI is opt-in per session, 30 AI messages per session)
   insights.py       Anomalies / Subscriptions / Forecast tabs + 'Review & correct categories' panel
   review.py         apply corrections: save, spread to same merchant, retrain, re-predict (no Streamlit, tested)
 data/      synthetic_labeled.csv (truth), synthetic_bank_export.csv (raw upload), eval_labeled.csv (300 rows, never train on it)
@@ -70,6 +73,15 @@ tests/
   (visitors cannot see each other's data), idle sessions are deleted after 24 h, and the file is lost on restart. The app says this on the page.
 - **Model retraining is local-only.** A retrained model is one global file shared by everyone using that server, so the hosted demo applies
   corrections to the user's own session (and same-merchant rows) but never retrains. Do not upload a statement you would not send to a server.
+
+## Ask tab (chat assistant)
+Ask things like *"How much did I spend on Groceries last month?"*, *"What are my subscriptions?"* or *"How is my data stored?"*.
+- **No AI by default.** Without `ANTHROPIC_API_KEY`, or with the checkbox off, answers come from keyword rules over the same functions.
+- **AI mode:** Claude (default `claude-haiku-5-5`, override with `CHAT_MODEL`) answers by calling read-only tools that return **aggregates only**;
+  raw transaction rows are never sent. Merchant names in tool results are sent to Anthropic, and the tab says so. Tool results are treated as data, not instructions.
+- Numbers always come from the tools, not from the model's memory. If the API fails, it falls back to rules.
+- Hosted: add `ANTHROPIC_API_KEY` as a Render environment variable (secret). Each session is capped at 30 AI messages.
+- Not evaluated yet: there is no accuracy number for the chat answers, so don't quote one.
 
 ## Metrics
 Every row is synthetic unless it says REAL. Reports: `metrics/`.

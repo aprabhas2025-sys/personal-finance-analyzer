@@ -12,7 +12,7 @@ import streamlit as st
 
 import uuid
 
-from app import config, dashboard, db, insights
+from app import chat_ui, config, dashboard, db, insights
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
@@ -101,8 +101,11 @@ c3.metric("Received", f"₹{received:,.0f}")
 c4.metric("Need review", n_review, help="Low-confidence ML predictions worth checking")
 
 # ---------------- tabs ----------------
-tab_dash, tab_tx, tab_anom, tab_subs, tab_fc, tab_cat, tab_month = st.tabs(
-    ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend"])
+tab_dash, tab_tx, tab_anom, tab_subs, tab_fc, tab_cat, tab_month, tab_ask = st.tabs(
+    ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend", "Ask"])
+
+with tab_ask:
+    chat_ui.render(df)
 
 with tab_dash:
     dashboard.render(f, df)

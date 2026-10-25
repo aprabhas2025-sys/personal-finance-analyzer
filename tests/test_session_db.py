@@ -65,3 +65,36 @@ def test_hosted_flag(monkeypatch, env, expected):
 def test_captions_do_not_make_false_privacy_claims():
     assert "never leaves this machine" in config.LOCAL_CAPTION
     assert "never leaves" not in config.HOSTED_CAPTION and "hosted" in config.HOSTED_CAPTION
+
+
+def test_every_db_call_closes_its_connection(sessions, monkeypatch):
+    """An open handle makes unlink() fail on Windows, which would silently break purge_old. Platform-independent check."""
+    import sqlite3
+    opened = []
+    real = sqlite3.connect
+
+    class Tracked:
+        def __init__(self, *a, **k):
+            self.c, self.closed = real(*a, **k), False
+            opened.append(self)
+
+        def __getattr__(self, n):
+            return getattr(self.c, n)
+
+        def close(self):
+            self.closed = True
+            self.c.close()
+
+    monkeypatch.setattr(db.sqlite3, "connect", Tracked)
+    p = db.session_path("c10c")
+    db.replace_all(_df("x"), p)
+    db.load(p), db.count(p)
+    db.update_category([1], "Health", p)
+    db.apply_predictions(pd.DataFrame({"id": [1], "category": ["Fuel"], "confidence": [0.5], "category_source": ["ml"]}), p)
+    db.clear(p)
+    assert opened and all(t.closed for t in opened)
+    n = len(opened)
+    bad = _df("y").assign(type="not-a-valid-type")                               # violates the CHECK constraint
+    with pytest.raises(sqlite3.IntegrityError):
+        db.replace_all(bad, p)
+    assert len(opened) > n and all(t.closed for t in opened)                     # a failing call still closes

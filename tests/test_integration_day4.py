@@ -13,7 +13,7 @@ def test_streamlit_app_all_tabs_render(tmp_path, monkeypatch):
     at = AppTest.from_file(str(APP), default_timeout=90).run()
     at.sidebar.button[0].click().run()
     assert not at.exception, [e.value for e in at.exception]
-    assert [t.label for t in at.tabs] == ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend"]
+    assert [t.label for t in at.tabs] == ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend", "Ask"]
     m = {x.label: x.value for x in at.metric}
     assert m["Monthly commitment"].startswith("₹") and m["Months of history"] == "12"
     assert any(k.startswith("Forecast spend") for k in m)

@@ -2,6 +2,7 @@
 import os
 import sqlite3
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import pandas as pd
@@ -51,12 +52,21 @@ def purge_old(max_age_hours: float = 24, folder=None, now=None) -> int:
     return removed
 
 
+@contextmanager
 def _conn(path=None):
+    """Commit on success, roll back on error, and ALWAYS close (an open handle blocks deleting the file on Windows)."""
     path = Path(path or DEFAULT_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
-    c = sqlite3.connect(path)
-    c.execute(SCHEMA)
-    return c
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(SCHEMA)
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def replace_all(df: pd.DataFrame, path=None) -> int:
