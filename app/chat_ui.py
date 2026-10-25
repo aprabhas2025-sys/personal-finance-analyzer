@@ -13,14 +13,15 @@ def render(full):
     ai_available = chatbot.make_client() is not None
     use_ai = False
     if ai_available:
-        use_ai = st.checkbox("Use the AI assistant (Claude)", value=False, key="chat_use_ai",
-                             help="Off: answers come from built-in rules. On: Claude chooses which summaries to look up.")
+        use_ai = st.checkbox("Use the AI assistant (Gemini)", value=False, key="chat_use_ai",
+                             help="Off: answers come from built-in rules. On: Gemini chooses which summaries to look up.")
         if use_ai:
-            st.caption("With this on, the summary numbers and merchant names needed to answer each question are sent to Anthropic's API. "
-                       "Raw transaction rows are not sent. Turn it off to keep everything on this server.")
+            st.caption("With this on, the summary numbers and merchant names needed to answer each question are sent to Google's Gemini API. "
+                       "Raw transaction rows are not sent, but on the free tier Google may use what it receives to improve its products, "
+                       "so avoid this with a real statement. Turn it off to keep everything on this server.")
     else:
         st.caption("Answers come from built-in rules (no AI key configured), so nothing leaves this app. "
-                   "Set `ANTHROPIC_API_KEY` to enable the AI assistant.")
+                   "Set `GEMINI_API_KEY` (free from Google AI Studio) to enable the AI assistant.")
 
     hist = st.session_state.setdefault("chat", [])
     n_ai = st.session_state.setdefault("chat_ai_count", 0)

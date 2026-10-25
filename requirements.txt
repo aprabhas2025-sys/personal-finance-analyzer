@@ -5,4 +5,4 @@ streamlit>=1.30
 plotly>=5.18
 pytest>=7.4
 statsmodels>=0.14
-anthropic>=0.40
+google-genai>=2.33

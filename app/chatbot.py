@@ -1,4 +1,4 @@
-"""Chat assistant: Claude with tool use over app.chat_tools (AI path) or keyword intents over the same tools (no-AI path).
+"""Chat assistant: Gemini (free tier) with function calling over app.chat_tools (AI path) or keyword intents over the same tools (no-AI path).
 
 The AI path never receives raw transactions: it asks for aggregates through the tools. Merchant names inside tool results are
 untrusted user data, so the system prompt tells the model to treat them as data, never as instructions.
@@ -11,7 +11,7 @@ import pandas as pd
 
 from app.chat_tools import TOOL_SCHEMAS, ChatTools
 
-MODEL = os.environ.get("CHAT_MODEL", "claude-haiku-5-5")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")   # check Google AI Studio for current free-tier model names
 MAX_TOOL_ROUNDS = 5
 MAX_HISTORY = 10          # messages kept per request
 
@@ -23,7 +23,7 @@ FACTS = """About this app (answer app questions from this only):
 - Subscriptions = payments repeating at a regular interval to one merchant (at least 3).
 - Forecast = average of all past months per category, with a rolling backtest. Metrics in the README are on SYNTHETIC data unless marked REAL.
 - Privacy: run locally, data stays on the machine. In the hosted demo the file is processed on the server in a temporary per-session file.
-  When the AI assistant is switched on, the summary numbers and merchant names returned by the tools are sent to Anthropic's API."""
+  When the AI assistant is switched on, the summary numbers and merchant names returned by the tools are sent to Google's Gemini API (free tier: Google may use them to improve its products)."""
 
 SYSTEM = f"""You are the assistant inside a personal finance analyzer. Amounts are in Indian rupees (₹).
 Answer questions about the user's own transactions ONLY by calling the tools; never guess or compute figures from memory. If a tool returns
@@ -40,7 +40,7 @@ HELP = ("I can answer questions like: *How much did I spend on Groceries last mo
 
 FAQ = [
     (r"privacy|secure|safe|leave|server|store", "Run locally and your data never leaves your machine. In the hosted demo your file is processed on the server in a temporary "
-                                               "per-session file, deleted on *Clear stored data*, after 24 h idle, or on restart. If the AI assistant is on, summary numbers and merchant names are sent to Anthropic's API."),
+                                               "per-session file, deleted on *Clear stored data*, after 24 h idle, or on restart. If the AI assistant is on, summary numbers and merchant names are sent to Google's Gemini API, whose free tier may use them to improve Google products."),
     (r"anomal|unusual", "Anomalies are duplicate charges and amounts far above what is normal for their category. It is a prompt to check, not proof of a problem."),
     (r"forecast|predict|accura", "The forecast is the average of all past months per category, checked by a rolling backtest. On synthetic data it was about 6.5% off on total spend "
                                  "versus 7.2% for a 3-month average, which is within noise. Real accuracy depends on your data."),
@@ -130,33 +130,50 @@ def rule_based(question: str, tools: ChatTools) -> dict:
 
 # ---------------- AI path ----------------
 def make_client():
-    """Anthropic client if a key is configured and the SDK is installed, else None."""
-    key = os.environ.get("ANTHROPIC_API_KEY")
+    """Gemini client if GEMINI_API_KEY (or GOOGLE_API_KEY) is set and the SDK is installed, else None."""
+    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not key:
         return None
     try:
-        import anthropic
-        return anthropic.Anthropic(api_key=key, timeout=30, max_retries=1)
+        from google import genai
+        return genai.Client(api_key=key)
     except Exception:
         return None
 
 
+def _declarations():
+    from google.genai import types
+    out = []
+    for t in TOOL_SCHEMAS:
+        schema = t["input_schema"]
+        kw = {"parameters_json_schema": schema} if schema.get("properties") else {}    # no-argument tools declare no parameters
+        out.append(types.FunctionDeclaration(name=t["name"], description=t["description"], **kw))
+    return out
+
+
 def llm_answer(question: str, history: list, tools: ChatTools, client, model: str = MODEL) -> dict:
-    msgs = [{"role": m["role"], "content": m["content"]} for m in history[-MAX_HISTORY:] if m.get("content")]
-    msgs.append({"role": "user", "content": question})
+    from google.genai import types
+    contents = [types.Content(role="user" if m["role"] == "user" else "model", parts=[types.Part(text=m["content"])])
+                for m in history[-MAX_HISTORY:] if m.get("content")]
+    contents.append(types.Content(role="user", parts=[types.Part(text=question)]))
+    config = types.GenerateContentConfig(system_instruction=SYSTEM, tools=[types.Tool(function_declarations=_declarations())],
+                                         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                                         max_output_tokens=800, temperature=0.2)
     calls = []
     for _ in range(MAX_TOOL_ROUNDS):
-        resp = client.messages.create(model=model, max_tokens=700, system=SYSTEM, tools=TOOL_SCHEMAS, messages=msgs)
-        if resp.stop_reason != "tool_use":
-            text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+        resp = client.models.generate_content(model=model, contents=contents, config=config)
+        if not resp.candidates:
+            raise RuntimeError("empty or blocked response")
+        fcs = resp.function_calls
+        if not fcs:
+            text = (resp.text or "").strip()
             return {"text": text or HELP, "source": "ai", "tool_calls": calls}
-        msgs.append({"role": "assistant", "content": resp.content})
-        results = []
-        for b in resp.content:
-            if getattr(b, "type", "") == "tool_use":
-                calls.append(b.name)
-                results.append({"type": "tool_result", "tool_use_id": b.id, "content": __import__("json").dumps(tools.run(b.name, b.input), default=str)})
-        msgs.append({"role": "user", "content": results})
+        contents.append(resp.candidates[0].content)                     # keep the model turn exactly as returned
+        parts = []
+        for fc in fcs:
+            calls.append(fc.name)
+            parts.append(types.Part.from_function_response(name=fc.name, response={"result": tools.run(fc.name, dict(fc.args or {}))}))
+        contents.append(types.Content(role="user", parts=parts))
     return {"text": "That needed more steps than I allow. Try a narrower question.", "source": "ai", "tool_calls": calls}
 
 
@@ -175,6 +192,6 @@ def answer(question: str, history: list, tools: ChatTools, use_ai: bool = False,
                 out["note"] = f"AI assistant unavailable ({type(e).__name__}); answered without AI."
                 return out
         out = rule_based(question, tools)
-        out["note"] = "No API key configured; answered without AI."
+        out["note"] = "No Gemini API key configured; answered without AI."
         return out
     return rule_based(question, tools)

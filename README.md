@@ -48,7 +48,7 @@ app/       Person B: Streamlit app
   config.py         local vs hosted mode (RENDER / FINANCE_HOSTED) and the matching privacy captions
   db.py             SQLite storage; one file per browser session (data/sessions/<id>.db), idle ones purged after 24 h
   chat_tools.py     read-only aggregate queries over the statement (spend, savings, merchants, subscriptions, anomalies, forecast)
-  chatbot.py        'Ask' assistant: Claude tool-use over chat_tools, or keyword rules when AI is off / no key
+  chatbot.py        'Ask' assistant: Gemini function calling over chat_tools, or keyword rules when AI is off / no key
   chat_ui.py        the Ask tab (AI is opt-in per session, 30 AI messages per session)
   insights.py       Anomalies / Subscriptions / Forecast tabs + 'Review & correct categories' panel
   review.py         apply corrections: save, spread to same merchant, retrain, re-predict (no Streamlit, tested)
@@ -76,11 +76,12 @@ tests/
 
 ## Ask tab (chat assistant)
 Ask things like *"How much did I spend on Groceries last month?"*, *"What are my subscriptions?"* or *"How is my data stored?"*.
-- **No AI by default.** Without `ANTHROPIC_API_KEY`, or with the checkbox off, answers come from keyword rules over the same functions.
-- **AI mode:** Claude (default `claude-haiku-5-5`, override with `CHAT_MODEL`) answers by calling read-only tools that return **aggregates only**;
-  raw transaction rows are never sent. Merchant names in tool results are sent to Anthropic, and the tab says so. Tool results are treated as data, not instructions.
+- **Free, no AI by default.** Without `GEMINI_API_KEY`, or with the checkbox off, answers come from keyword rules over the same functions.
+- **AI mode (free tier):** Gemini (default `gemini-3.5-flash-lite`, override with `GEMINI_MODEL`; get a free key at Google AI Studio) answers by calling
+  read-only tools that return **aggregates only**; raw transaction rows are never sent. Merchant names in tool results are sent to Google, and the tab says so.
+  **Free-tier Gemini content may be used by Google to improve its products**, so use AI mode with sample data, not a real statement. Tool results are treated as data, not instructions.
 - Numbers always come from the tools, not from the model's memory. If the API fails, it falls back to rules.
-- Hosted: add `ANTHROPIC_API_KEY` as a Render environment variable (secret). Each session is capped at 30 AI messages.
+- Hosted: add `GEMINI_API_KEY` as a Render environment variable (secret). Each session is capped at 30 AI messages.
 - Not evaluated yet: there is no accuracy number for the chat answers, so don't quote one.
 
 ## Metrics

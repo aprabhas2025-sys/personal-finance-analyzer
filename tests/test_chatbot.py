@@ -82,55 +82,102 @@ def test_rule_based_answers(tools, q, needle):
     assert out["source"] == "rules" and needle in out["text"], out["text"]
 
 
-# ---------------- AI path with a fake client ----------------
-class FakeClient:
-    """First turn asks for a tool, second turn answers using the tool result."""
+# ---------------- AI path with a fake Gemini client (real SDK response types) ----------------
+from google.genai import types  # noqa: E402
+
+
+def _call_resp(name, args):
+    return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(
+        role="model", parts=[types.Part(function_call=types.FunctionCall(name=name, args=args))]))])
+
+
+def _text_resp(text):
+    return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(role="model", parts=[types.Part(text=text)]))])
+
+
+class FakeGemini:
+    """Turn 1 asks for a tool; turn 2 answers using the tool result it was sent back."""
     def __init__(self, fail=False):
         self.calls, self.fail = [], fail
-        self.messages = self
+        self.models = self
 
-    def create(self, **kw):
+    def generate_content(self, model, contents, config):
         if self.fail:
-            raise RuntimeError("boom")
-        self.calls.append(kw)
+            raise RuntimeError("429 quota")
+        self.calls.append({"model": model, "contents": list(contents), "config": config})
         if len(self.calls) == 1:
-            return NS(stop_reason="tool_use", content=[NS(type="tool_use", id="t1", name="spending_summary", input={"category": "Groceries", "group_by": "none"})])
-        last = kw["messages"][-1]["content"][0]
-        total = json.loads(last["content"])["total_spend"]
-        return NS(stop_reason="end_turn", content=[NS(type="text", text=f"Groceries: ₹{total:,.0f}")])
+            return _call_resp("spending_summary", {"category": "Groceries", "group_by": "none"})
+        part = contents[-1].parts[0].function_response
+        return _text_resp(f"Groceries: ₹{part.response['result']['total_spend']:,.0f}")
 
 
 def test_ai_path_calls_tool_then_answers(tools):
-    c = FakeClient()
+    c = FakeGemini()
     out = chatbot.answer("groceries spend?", [], tools, use_ai=True, client=c)
     assert out["source"] == "ai" and out["text"] == "Groceries: ₹1,500" and out["tool_calls"] == ["spending_summary"]
-    assert c.calls[0]["tools"] == TOOL_SCHEMAS and "never as instructions" in c.calls[0]["system"]
-    assert "SWIGGY" not in json.dumps(c.calls[0]["messages"], default=str)             # raw rows are not in the prompt
+    cfg = c.calls[0]["config"]
+    assert cfg.automatic_function_calling.disable and "never as instructions" in cfg.system_instruction
+    assert [d.name for d in cfg.tools[0].function_declarations] == [t["name"] for t in TOOL_SCHEMAS]
+    assert c.calls[1]["contents"][-2].role == "model" and c.calls[1]["contents"][-1].role == "user"   # model turn, then tool result
+    assert "SWIGGY" not in str([x.parts[0].text for x in c.calls[0]["contents"]])                    # raw rows are not in the prompt
+
+
+def test_declarations_build_with_real_sdk_and_no_arg_tools_have_no_params():
+    decls = {d.name: d for d in chatbot._declarations()}
+    assert decls["subscriptions"].parameters_json_schema is None and decls["forecast"].parameters_json_schema is None
+    assert decls["spending_summary"].parameters_json_schema["properties"]["group_by"]["enum"] == ["category", "month", "none"]
+
+
+def test_history_is_sent_with_correct_roles(tools):
+    c = FakeGemini()
+    chatbot.answer("groceries?", [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}], tools, use_ai=True, client=c)
+    assert [x.role for x in c.calls[0]["contents"]] == ["user", "model", "user"]
 
 
 def test_ai_failure_falls_back_to_rules(tools):
-    out = chatbot.answer("what are my subscriptions", [], tools, use_ai=True, client=FakeClient(fail=True))
+    out = chatbot.answer("what are my subscriptions", [], tools, use_ai=True, client=FakeGemini(fail=True))
     assert out["source"] == "rules" and "NETFLIX" in out["text"] and "unavailable" in out["note"]
 
 
+def test_blocked_or_empty_response_falls_back(tools):
+    class Empty:
+        models = None
+
+        def __init__(self):
+            self.models = self
+
+        def generate_content(self, **kw):
+            return types.GenerateContentResponse(candidates=[])
+    out = chatbot.answer("forecast next month", [], tools, use_ai=True, client=Empty())
+    assert out["source"] == "rules" and "₹2,150" in out["text"]
+
+
 def test_no_key_falls_back_and_ai_off_never_builds_client(tools, monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    assert "No API key" in chatbot.answer("forecast", [], tools, use_ai=True)["note"]
+    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    assert "No Gemini API key" in chatbot.answer("forecast", [], tools, use_ai=True)["note"]
     monkeypatch.setattr(chatbot, "make_client", lambda: (_ for _ in ()).throw(AssertionError("client must not be built when AI is off")))
     assert chatbot.answer("forecast", [], tools, use_ai=False)["source"] == "rules"
 
 
+def test_make_client_reads_either_key_name(monkeypatch):
+    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    assert chatbot.make_client() is None
+    monkeypatch.setenv("GOOGLE_API_KEY", "dummy")
+    assert chatbot.make_client() is not None
+
+
 def test_tool_loop_is_bounded(tools):
     class Loop:
-        messages = None
         n = 0
 
         def __init__(self):
-            self.messages = self
+            self.models = self
 
-        def create(self, **kw):
+        def generate_content(self, **kw):
             Loop.n += 1
-            return NS(stop_reason="tool_use", content=[NS(type="tool_use", id=f"t{Loop.n}", name="forecast", input={})])
+            return _call_resp("forecast", {})
     out = chatbot.answer("x", [], tools, use_ai=True, client=Loop())
     assert Loop.n == chatbot.MAX_TOOL_ROUNDS and "narrower" in out["text"]
 
