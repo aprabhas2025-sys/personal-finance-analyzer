@@ -1,5 +1,7 @@
 """SQLite storage. Local file, no server. Every function takes an optional path so tests can use a temp DB."""
+import os
 import sqlite3
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -17,6 +19,36 @@ CREATE TABLE IF NOT EXISTS transactions (
     confidence REAL NOT NULL DEFAULT 1.0,
     category_source TEXT NOT NULL DEFAULT 'rule'   -- rule | ml | user | existing
 )"""
+
+
+def session_path(session_id: str) -> Path:
+    """Per-visitor DB file, so two sessions never read or overwrite each other's statement.
+
+    Lives under <DEFAULT_PATH's folder>/sessions/ (or $FINANCE_DB_DIR, e.g. a temp dir on a host). The id is
+    reduced to hex characters so it can never escape that folder.
+    """
+    safe = "".join(ch for ch in str(session_id) if ch in "0123456789abcdef")
+    if not safe:
+        raise ValueError("session_id must contain hex characters")
+    base = Path(os.environ["FINANCE_DB_DIR"]) if os.environ.get("FINANCE_DB_DIR") else DEFAULT_PATH.parent / "sessions"
+    return base / f"{safe}.db"
+
+
+def purge_old(max_age_hours: float = 24, folder=None, now=None) -> int:
+    """Delete session DB files not modified for max_age_hours. Returns how many were removed."""
+    folder = Path(folder) if folder else session_path("0").parent
+    if not folder.exists():
+        return 0
+    cutoff = (now if now is not None else time.time()) - max_age_hours * 3600
+    removed = 0
+    for p in folder.glob("*.db"):
+        try:
+            if p.stat().st_mtime < cutoff:
+                p.unlink()
+                removed += 1
+        except OSError:
+            pass
+    return removed
 
 
 def _conn(path=None):

@@ -2,14 +2,14 @@
 import pandas as pd
 import streamlit as st
 
-from app import charts, review
+from app import charts, config, review
 from ml import api, forecast as F
 from ml.schema import CATEGORIES
 
 _RS = st.column_config.NumberColumn(format="₹%.2f")
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=20, ttl=3600)   # bounded: a hosted server should not hold uploads in memory forever
 def _backtest(df: pd.DataFrame):
     return F.backtest(df)
 
@@ -86,11 +86,16 @@ def render_forecast(full: pd.DataFrame):
                "With about a year of data these numbers are noisy; a method winning here is weak evidence.")
 
 
-def render_review(f: pd.DataFrame, full: pd.DataFrame):
-    """Editable category column for the least-confident rows. Applying corrections retrains the model."""
+def render_review(f: pd.DataFrame, full: pd.DataFrame, db_path=None, retrain: bool = True):
+    """Editable category column for the least-confident rows. Applying corrections retrains the model when retrain=True
+    (local use). Hosted deploys pass retrain=False: the retrained model is one global file, so it would be shared across visitors."""
     with st.expander("Review & correct categories", expanded=False):
-        st.caption("Change a category and apply. The correction can also be applied to every transaction from the same merchant, "
-                   "and the model is retrained so similar transactions are categorized better. Least confident rows first.")
+        if retrain:
+            st.caption("Change a category and apply. The correction can also be applied to every transaction from the same merchant, "
+                       "and the model is retrained so similar transactions are categorized better. Least confident rows first.")
+        else:
+            st.caption("Change a category and apply. The correction can also be applied to every transaction from the same merchant. "
+                       "Least confident rows first. " + config.HOSTED_RETRAIN_NOTE)
         n = st.session_state.setdefault("review_n", 0)
         view = f.sort_values("confidence").head(150)
         edit_src = view.assign(date=view["date"].dt.date)[["id", "date", "description", "amount", "type", "category", "confidence", "category_source"]]
@@ -103,10 +108,12 @@ def render_review(f: pd.DataFrame, full: pd.DataFrame):
         changed = edited.loc[edited["category"].to_numpy() != edit_src["category"].to_numpy()]
         if st.button(f"Apply {len(changed)} correction(s)", disabled=changed.empty, type="primary"):
             with st.spinner("Saving and retraining…"):
-                s = review.apply_corrections(full, dict(zip(changed["id"], changed["category"])), propagate=propagate)
+                s = review.apply_corrections(full, dict(zip(changed["id"], changed["category"])), propagate=propagate,
+                                             retrain=retrain, db_path=db_path)
             st.session_state["review_n"] = n + 1
-            st.session_state["review_msg"] = (f"Corrected {s['corrected']} + {s['propagated']} same-merchant transactions. "
-                                              f"Model retrained; {s['changed_by_model']} other predictions changed.")
+            msg = f"Corrected {s['corrected']} + {s['propagated']} same-merchant transactions. "
+            st.session_state["review_msg"] = msg + (f"Model retrained; {s['changed_by_model']} other predictions changed." if retrain
+                                                    else "Model not retrained in the hosted demo.")
             st.rerun()
         if st.session_state.get("review_msg"):
             st.success(st.session_state.pop("review_msg"))

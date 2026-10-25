@@ -1,0 +1,13 @@
+# Render blueprint: New + > Blueprint, point at this repo. Free plan is enough for a demo (cold start ~30-60 s after idle).
+services:
+  - type: web
+    name: finance-analyzer
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: FINANCE_HOSTED        # app shows the hosted privacy notice and does not retrain a shared model
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

@@ -10,22 +10,31 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app import dashboard, db, insights
+import uuid
+
+from app import config, dashboard, db, insights
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
 
 st.set_page_config(page_title="Personal Finance Analyzer", page_icon="💸", layout="wide")
 st.title("💸 Personal Finance Analyzer")
-st.caption("Upload a bank/UPI statement CSV. Everything runs locally and your data never leaves this machine.")
+HOSTED = config.is_hosted()
+st.caption(config.HOSTED_CAPTION if HOSTED else config.LOCAL_CAPTION)
 
 SAMPLE = ROOT / "data" / "synthetic_bank_export.csv"
+
+# One DB file per browser session (never a shared file), so visitors cannot see or overwrite each other's data.
+if "sid" not in st.session_state:
+    st.session_state["sid"] = uuid.uuid4().hex
+    db.purge_old(24)                                       # housekeeping: drop other sessions' files idle for 24h
+DB_PATH = db.session_path(st.session_state["sid"])
 
 
 def ingest(raw: pd.DataFrame):
     df, report = clean_transactions(raw)
     df = api.categorize(df)                    # Person A's model
-    db.replace_all(df)
+    db.replace_all(df, DB_PATH)
     st.session_state["report"] = report
 
 
@@ -35,7 +44,7 @@ with st.sidebar:
     up = st.file_uploader("Bank statement (CSV)", type=["csv"])
     use_sample = st.button("Use sample data", disabled=not SAMPLE.exists())
     if st.button("Clear stored data"):
-        db.clear()
+        db.clear(DB_PATH)
         st.session_state.pop("loaded_sig", None)
         st.session_state.pop("report", None)
 
@@ -56,7 +65,7 @@ if source is not None:
             st.error(str(e))
             st.stop()
 
-df = db.load()
+df = db.load(DB_PATH)
 if df.empty:
     st.info("Upload a CSV or click **Use sample data** in the sidebar to begin.")
     st.stop()
@@ -106,7 +115,7 @@ with tab_tx:
         column_config={"amount": st.column_config.NumberColumn(format="₹%.2f"),
                        "confidence": st.column_config.ProgressColumn(min_value=0, max_value=1, format="%.2f")})
     st.download_button("Download filtered CSV", f.drop(columns=["id"]).to_csv(index=False), "transactions.csv", "text/csv")
-    insights.render_review(f, df)
+    insights.render_review(f, df, DB_PATH, retrain=not HOSTED)
 
 with tab_anom:
     insights.render_anomalies(f, df)

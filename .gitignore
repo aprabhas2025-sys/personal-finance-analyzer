@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 data/finance.db
 ml/models/categorizer_user.joblib
+data/sessions/
+.streamlit/secrets.toml
