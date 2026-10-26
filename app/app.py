@@ -10,26 +10,23 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-import uuid
-
-from app import budgets_ui, chat_ui, config, dashboard, db, insights, theme
+from app import auth, budgets_ui, chat_ui, config, dashboard, db, insights, landing
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
 
 st.set_page_config(page_title="Personal Finance Analyzer", page_icon="📈", layout="wide")
-theme.inject()
-theme.hero()
+USER = landing.require_login()          # signed out: landing / sign-in / sign-up page, then st.stop(). Signed in: carry on to the app.
+st.title("Personal Finance Analyzer")
 HOSTED = config.is_hosted()
 st.caption(config.HOSTED_CAPTION if HOSTED else config.LOCAL_CAPTION)
+if st.session_state.pop("just_signed_in", False):
+    st.toast(f"Signed in as {USER['email']}")
 
 SAMPLE = ROOT / "data" / "synthetic_bank_export.csv"
 
-# One DB file per browser session (never a shared file), so visitors cannot see or overwrite each other's data.
-if "sid" not in st.session_state:
-    st.session_state["sid"] = uuid.uuid4().hex
-    db.purge_old(24)                                       # housekeeping: drop other sessions' files idle for 24h
-DB_PATH = db.session_path(st.session_state["sid"])
+# One private DB file per account, so users can never see or overwrite each other's data.
+DB_PATH = db.account_path(USER["id"])
 
 
 def ingest(raw: pd.DataFrame):
@@ -41,6 +38,16 @@ def ingest(raw: pd.DataFrame):
 
 # ---------------- sidebar: load data ----------------
 with st.sidebar:
+    st.caption(f"Signed in as **{USER['email']}**")
+    if st.button("Sign out"):
+        st.session_state.clear()               # also drops chat history and any loaded state, so the next user starts clean
+        st.rerun()
+    with st.expander("Account"):
+        sure = st.checkbox("Permanently delete my account and data")
+        if st.button("Delete my account", disabled=not sure):
+            auth.delete_user(USER["id"])
+            st.session_state.clear()
+            st.rerun()
     st.header("1. Load data")
     up = st.file_uploader("Bank statement (CSV)", type=["csv"])
     use_sample = st.button("Use sample data", disabled=not SAMPLE.exists())

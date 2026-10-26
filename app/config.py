@@ -9,9 +9,8 @@ def is_hosted() -> bool:
 LOCAL_CAPTION = ("Upload a bank/UPI statement CSV. Everything runs locally and your data never leaves this machine.")
 
 HOSTED_CAPTION = ("Upload a bank/UPI statement CSV. **This is a hosted demo:** your file is processed on the server and kept in a "
-                  "temporary file tied to this browser session. It is deleted when you press *Clear stored data* or when the server "
-                  "cleans up old sessions (after 24 hours idle) or restarts. For a real statement, run the app locally instead "
-                  "(see the README), or use the sample data.")
+                  "private file tied to your account until you press *Clear stored data* or delete your account (it is also lost "
+                  "if the server restarts). For a real statement, run the app locally instead (see the README), or use the sample data.")
 
-HOSTED_RETRAIN_NOTE = ("In this hosted demo, corrections apply to your session (and to the same merchant) but the model is not retrained, "
+HOSTED_RETRAIN_NOTE = ("In this hosted demo, corrections apply to your account (and to the same merchant) but the model is not retrained, "
                        "so one visitor's corrections can never change what another visitor sees. Run locally to retrain the model.")

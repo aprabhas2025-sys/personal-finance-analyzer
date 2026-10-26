@@ -5,3 +5,5 @@ data/finance.db
 ml/models/categorizer_user.joblib
 data/sessions/
 .streamlit/secrets.toml
+data/users.db
+data/accounts/

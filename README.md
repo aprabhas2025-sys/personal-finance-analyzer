@@ -47,7 +47,9 @@ app/       Person B: Streamlit app
   dashboard.py      Dashboard tab: KPIs, charts, unusual transactions, recurring payments
   theme.py / style.css  premium look: dark hero with light streaks, frosted-glass cards and tabs, serif-italic accents (CSS only, no images)
   config.py         local vs hosted mode (RENDER / FINANCE_HOSTED) and the matching privacy captions
-  db.py             SQLite storage; one file per browser session (data/sessions/<id>.db), idle ones purged after 24 h
+  auth.py           accounts: email + password (scrypt hashes), lockout, delete account
+  landing.py        landing page, sign-in and sign-up pages, and the login gate used by app.py
+  db.py             SQLite storage; one file per account (data/accounts/<id>.db)
   budgets.py        monthly category budgets: spent vs limit, forecast-based warnings, suggested limits (pure pandas, tested)
   budgets_ui.py     the Budgets tab (limits are saved per session in the same SQLite file)
   chat_tools.py     read-only aggregate queries over the statement (spend, savings, merchants, subscriptions, anomalies, forecast)
@@ -70,12 +72,14 @@ tests/
 - [x] Day 5 (code): per-session storage, honest hosted/local privacy caption, no shared-model retraining when hosted, Render config
 - [ ] Day 5 (yours): hand-label ~300 real rows and run `ml.real_eval`, screenshots in `docs/`, demo video (script in DEMO.md)
 
-## Privacy and hosting
-- **Local (default):** nothing leaves your machine. Data sits in `data/sessions/<id>.db`; *Clear stored data* empties it.
-- **Hosted (`RENDER` or `FINANCE_HOSTED=1`):** the upload is processed on the server. Each browser session gets its own temporary DB file
-  (visitors cannot see each other's data), idle sessions are deleted after 24 h, and the file is lost on restart. The app says this on the page.
-- **Model retraining is local-only.** A retrained model is one global file shared by everyone using that server, so the hosted demo applies
-  corrections to the user's own session (and same-merchant rows) but never retrains. Do not upload a statement you would not send to a server.
+## Accounts, privacy and hosting
+- **Flow:** landing page, then *Get started* (sign up) or *Sign in*, then the app. *Sign out* returns to the landing page. Refreshing the browser signs you out (no "remember me" yet).
+- **Passwords** are never stored: only a salted scrypt hash (`app/auth.py`, standard library). Wrong email and wrong password show the same message, and 5 wrong passwords lock the account for 5 minutes.
+- **Each account has its own data file** (`data/accounts/<id>.db`); users cannot see each other's data. *Clear stored data* empties it, and *Account > Delete my account* removes the account and its file.
+- **Local (default):** nothing leaves your machine. Accounts and data are files under `data/` (`users.db`, `accounts/`, both gitignored).
+- **Hosted (`RENDER` or `FINANCE_HOSTED=1`):** uploads and accounts live on the server's disk. On Render's free plan that disk is wiped on every restart or redeploy, so accounts disappear; point `FINANCE_DB_DIR` at a persistent disk if you need them to last. Prefer the sample data on a hosted demo.
+- **Model retraining is local-only.** A retrained model is one global file shared by everyone using that server, so the hosted demo applies corrections to the user's own account (and same-merchant rows) but never retrains.
+- Not built yet: email verification, password reset, "remember me". Open sign-up has no rate limit beyond the per-account lockout, so do not expose it publicly with real users without adding them.
 
 ## Budgets tab
 Set a monthly limit per category (or click *Suggest from my average*: average monthly spend over complete months, +10%, rounded up to ₹100). Each category is then

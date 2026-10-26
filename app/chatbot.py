@@ -22,7 +22,7 @@ FACTS = """About this app (answer app questions from this only):
 - Anomalies = duplicate charges and amounts far above normal for their category. It is a prompt to check, not proof.
 - Subscriptions = payments repeating at a regular interval to one merchant (at least 3).
 - Forecast = average of all past months per category, with a rolling backtest. Metrics in the README are on SYNTHETIC data unless marked REAL.
-- Privacy: run locally, data stays on the machine. In the hosted demo the file is processed on the server in a temporary per-session file.
+- Privacy: run locally, data stays on the machine. In the hosted demo the file is processed on the server and kept in a private per-account file until the user clears it or deletes the account.
   When the AI assistant is switched on, the summary numbers and merchant names returned by the tools are sent to Google's Gemini API (free tier: Google may use them to improve its products)."""
 
 SYSTEM = f"""You are the assistant inside a personal finance analyzer. Amounts are in Indian rupees (₹).
@@ -39,8 +39,8 @@ HELP = ("I can answer questions like: *How much did I spend on Groceries last mo
         "corrections and privacy work.")
 
 FAQ = [
-    (r"privacy|secure|safe|leave|server|store", "Run locally and your data never leaves your machine. In the hosted demo your file is processed on the server in a temporary "
-                                               "per-session file, deleted on *Clear stored data*, after 24 h idle, or on restart. If the AI assistant is on, summary numbers and merchant names are sent to Google's Gemini API, whose free tier may use them to improve Google products."),
+    (r"privacy|secure|safe|leave|server|store", "Run locally and your data never leaves your machine. In the hosted demo your file is processed on the server and kept in your "
+                                               "private account file until you press *Clear stored data* or delete your account, or the server restarts. If the AI assistant is on, summary numbers and merchant names are sent to Google's Gemini API, whose free tier may use them to improve Google products."),
     (r"anomal|unusual", "Anomalies are duplicate charges and amounts far above what is normal for their category. It is a prompt to check, not proof of a problem."),
     (r"forecast|predict|accura", "The forecast is the average of all past months per category, checked by a rolling backtest. On synthetic data it was about 6.5% off on total spend "
                                  "versus 7.2% for a 3-month average, which is within noise. Real accuracy depends on your data."),

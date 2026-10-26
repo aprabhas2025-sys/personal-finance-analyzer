@@ -41,6 +41,15 @@ def session_path(session_id: str) -> Path:
     return base / f"{safe}.db"
 
 
+def account_path(user_id: str) -> Path:
+    """A signed-in user's private DB file (kept until they clear it or delete the account; never purged like session files)."""
+    safe = "".join(ch for ch in str(user_id) if ch in "0123456789abcdef")
+    if not safe:
+        raise ValueError("user_id must contain hex characters")
+    base = Path(os.environ["FINANCE_DB_DIR"]) if os.environ.get("FINANCE_DB_DIR") else DEFAULT_PATH.parent
+    return base / "accounts" / f"{safe}.db"
+
+
 def purge_old(max_age_hours: float = 24, folder=None, now=None) -> int:
     """Delete session DB files not modified for max_age_hours. Returns how many were removed."""
     folder = Path(folder) if folder else session_path("0").parent
