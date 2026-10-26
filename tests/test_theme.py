@@ -13,15 +13,21 @@ def test_css_uses_role_selectors_so_it_survives_streamlit_dom_changes():
     assert '[role="tab"]' in c and '[role="tablist"]' in c and '.stTabs [data-baseweb' not in c
 
 
-def test_hero_html_is_safe_for_markdown():
+def test_hero_component_contains_full_viewport_spline_scene():
     h = theme.HERO_HTML
-    assert "\n" not in h and h.startswith("<div") and h.count("<div") == h.count("</div>")
-    assert "<script" not in h.lower() and "<img" not in h.lower()          # no remote or cartoon images, no scripts
+    assert "\n" not in h and h.startswith('<div class="fa-hero-root"')
+    assert h.count("<div") == h.count("</div>")
+    assert "https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" in h
+    assert "events-target=\"global\"" in h and "load-complete" in h
+    assert "prefers-reduced-motion" in h and "fa-live" in h and "fa-cursor-glow" in h
+    assert all(section in h for section in ("fa-overview", "fa-insights", "fa-planning", "fa-privacy", "fa-start"))
+    assert "animation-timeline:view()" in h and "unloadable" in h
 
 
 def test_hero_makes_no_fake_numbers():
     import re
-    assert not re.search(r"[₹$]\s?\d|\d+%", theme.HERO_HTML)               # a decorative panel must not show invented figures
+    visible = re.sub(r"<style>.*?</style>|<script.*?</script>", "", theme.HERO_HTML, flags=re.S)
+    assert not re.search(r"[₹$]\s?\d|\d+%", visible)  # no made-up balances or percentages
 
 
 def test_missing_stylesheet_does_not_break_the_app(monkeypatch, tmp_path):
@@ -36,4 +42,4 @@ def test_theme_renders_in_a_streamlit_run():
     at = AppTest.from_string("from app import theme\ntheme.inject()\ntheme.hero()").run()
     assert not at.exception
     html = " ".join(m.value for m in at.markdown)
-    assert "fa-hero" in html and "<style>" in html
+    assert "<style>" in html and "fa-hero-root" in theme.HERO_HTML

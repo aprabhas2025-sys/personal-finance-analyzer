@@ -1,0 +1,73 @@
+:root{
+  --bg:#05080F; --ink:#F2F6FF; --blue:#6FA8FF; --muted:#7C8699; --line:rgba(140,165,210,.28);
+  --glow:rgba(90,150,255,.55); --err:#FF8DA1;
+  --font:"Inter","SF Pro Display","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(120% 90% at 50% 0%,#0B1530 0%,var(--bg) 60%);color:var(--ink);font-family:var(--font);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.nebula{position:fixed;left:50%;top:55%;width:min(820px,140vw);height:min(620px,100vh);transform:translate(-50%,-50%);z-index:0;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(60,110,230,.16),rgba(40,70,170,.07) 55%,transparent 100%);filter:blur(10px)}
+.stage{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;padding:48px 20px}
+.hero{text-align:center;max-width:560px}
+h1{margin:0 0 12px;font-size:clamp(28px,5vw,44px);line-height:1.12;font-weight:700;letter-spacing:-.02em}
+.sub{margin:0 0 6px;color:var(--blue);font-size:15px;letter-spacing:.02em}
+.by{margin:0;color:var(--muted);font-size:13px}
+.card{width:min(380px,100%);display:flex;flex-direction:column;gap:18px}
+.field label{display:block;margin:0 0 7px 6px;font-size:13px;color:#A9B4CC}
+input{width:100%;height:54px;padding:0 20px;background:rgba(8,13,26,.55);color:var(--ink);border:1px solid var(--line);border-radius:20px;font:inherit;font-size:16px;letter-spacing:.01em;outline:none;
+  transition:border-color .3s,box-shadow .3s,background .3s}
+input::placeholder{color:#566078}
+input:hover{border-color:rgba(150,180,235,.45)}
+input:focus-visible{border-color:#5A9BFF;background:rgba(10,18,38,.7);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 1px rgba(90,155,255,.35),0 0 18px rgba(80,140,255,.28)}50%{box-shadow:0 0 0 1px rgba(90,155,255,.5),0 0 30px rgba(80,140,255,.45)}}
+input[aria-invalid="true"]{border-color:var(--err)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:52px}
+.eye{position:absolute;right:8px;top:50%;width:38px;height:38px;margin-top:-19px;display:grid;place-items:center;border:0;border-radius:50%;background:none;color:#8794AD;cursor:pointer;transition:color .25s,transform .25s,background .25s}
+.eye:hover{color:var(--ink);background:rgba(120,160,230,.1)}
+.eye:focus-visible{outline:2px solid #5A9BFF;outline-offset:1px}
+.eye .slash{stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .3s}
+.eye[aria-pressed="true"]{color:var(--blue);transform:scale(1.08)}
+.eye[aria-pressed="true"] .slash{stroke-dashoffset:0}
+.err{min-height:18px;margin:6px 0 -4px 8px;font-size:12.5px;color:var(--err);opacity:0;transform:translateY(-3px);transition:.25s}
+.err:not(:empty){opacity:1;transform:none}
+.btn{position:relative;height:54px;margin-top:2px;border:1px solid var(--line);border-radius:20px;background:rgba(18,30,60,.5);color:var(--ink);font:inherit;font-size:16px;font-weight:600;cursor:pointer;
+  transition:background .3s,border-color .3s,box-shadow .3s,transform .2s}
+.btn:hover{background:rgba(40,75,150,.45);border-color:rgba(120,170,255,.7);box-shadow:0 0 26px rgba(70,130,255,.35);transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.985);background:rgba(30,60,130,.6)}
+.btn:focus-visible{outline:2px solid #5A9BFF;outline-offset:3px}
+.btn .spin{position:absolute;inset:0;margin:auto;width:20px;height:20px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;opacity:0;animation:spin .8s linear infinite;animation-play-state:paused}
+.btn.loading{pointer-events:none}
+.btn.loading .lbl{opacity:0}
+.btn.loading .spin{opacity:1;animation-play-state:running}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn.success{border-color:#7EC8FF;background:rgba(50,110,200,.5);animation:ok .9s ease-out}
+@keyframes ok{0%{box-shadow:0 0 0 0 rgba(120,190,255,.7)}100%{box-shadow:0 0 0 26px rgba(120,190,255,0)}}
+.card.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (max-width:480px){.stage{gap:26px;padding-top:36px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+.back{position:fixed;top:22px;left:24px;z-index:5;padding:10px 15px;border:1px solid var(--line);border-radius:999px;background:rgba(8,13,26,.45);color:var(--ink);font:inherit;font-size:13px;cursor:pointer;backdrop-filter:blur(12px);transition:border-color .25s,background .25s,transform .2s}.back:hover{border-color:rgba(150,180,235,.55);background:rgba(30,48,86,.55);transform:translateY(-1px)}.back:focus-visible{outline:2px solid #A78BFA;outline-offset:2px}.by sup{font-size:9px;color:var(--blue);margin-left:2px}.server-err{margin:0 0 -10px 8px;min-height:0}
+@media(max-width:480px){.back{top:12px;left:12px;padding:8px 12px}}
+
+/* Match Finora's charcoal and soft-lavender landing palette. */
+:root{--bg:#050506;--ink:#f5f3fa;--blue:#c2adff;--muted:#92909d;--line:rgba(205,190,245,.24);--glow:rgba(167,139,250,.38);--err:#ff9baa}
+body{background:radial-gradient(115% 85% at 50% 0%,#17131f 0%,#09080c 48%,#050506 80%)}
+.nebula{background:radial-gradient(closest-side,rgba(167,139,250,.14),rgba(106,83,155,.06) 55%,transparent 100%)}
+#sky{filter:hue-rotate(35deg) saturate(.72)}
+input{background:rgba(18,16,23,.68);border-color:rgba(213,204,235,.2)}
+input:hover{border-color:rgba(195,173,255,.42)}
+input:focus-visible{border-color:#b69cff}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 1px rgba(182,156,255,.3),0 0 18px rgba(167,139,250,.2)}50%{box-shadow:0 0 0 1px rgba(182,156,255,.45),0 0 30px rgba(167,139,250,.34)}}
+.eye:focus-visible,.btn:focus-visible{outline-color:#b69cff}
+.eye:hover{background:rgba(167,139,250,.1)}
+.btn{background:linear-gradient(110deg,rgba(167,139,250,.16),rgba(18,16,23,.84) 58%);border-color:rgba(205,190,245,.27)}
+.btn:hover{background:linear-gradient(110deg,rgba(167,139,250,.28),rgba(35,29,45,.9) 58%);border-color:rgba(195,173,255,.62);box-shadow:0 0 26px rgba(167,139,250,.22)}
+.btn:active{background:rgba(94,70,140,.42)}
+.back{background:rgba(12,11,15,.78);border-color:rgba(205,190,245,.25)}
+.back:hover{background:rgba(39,31,53,.82);border-color:rgba(195,173,255,.62)}
+@media(prefers-reduced-motion:reduce){#sky{filter:none}}
+/* The Streamlit parent owns Back navigation so it always triggers a rerun. */
+.back{display:none}

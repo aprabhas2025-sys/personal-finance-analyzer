@@ -31,9 +31,10 @@ def _fill(at, *values):
 def test_signed_out_user_sees_landing_not_the_app():
     at = AppTest.from_string(GATE).run()
     assert not at.exception and not _home(at)
-    assert {b.label for b in at.button} >= {"Sign in", "Get started", "Create free account"}
+    assert {b.label for b in at.button} >= {"Sign in", "Get started"}
     page = " ".join(m.value for m in at.markdown)
-    assert "fa-hero" in page and "fa-grid" in page and "fa-steps" in page and "<style>" in page
+    assert "fa-grid" in page and "fa-steps" in page and "<style>" in page
+    assert "fa-hero-root" in theme.HERO_HTML
 
 
 def test_signed_in_user_goes_straight_to_the_app_with_no_landing_markup():
@@ -56,7 +57,7 @@ def test_signup_then_lands_on_home():
 
 def test_signup_errors_keep_you_on_the_form():
     at = AppTest.from_string(GATE).run()
-    _btn(at, "Create free account").click().run()
+    _btn(at, "Get started").click().run()
     _fill(at, "bad-email", "s3cret-pass", "s3cret-pass")
     _btn(at, "Create account").click().run()
     assert not _home(at) and any("valid email" in e.value for e in at.error)
@@ -96,7 +97,7 @@ def test_password_fields_are_masked():
 
 
 def test_landing_html_is_markdown_safe_and_honest():
-    for block in (theme.HERO_HTML, theme.FEATURES_HTML, theme.STEPS_HTML, theme.TRUST_HTML, theme.FOOTER_HTML, theme.BRAND_HTML):
+    for block in (theme.FEATURES_HTML, theme.STEPS_HTML, theme.TRUST_HTML, theme.FOOTER_HTML, theme.BRAND_HTML):
         assert "\n" not in block and block.count("<div") == block.count("</div>")
         assert "<script" not in block.lower() and "<img" not in block.lower() and "http" not in block.lower()
         assert not re.search(r"[₹$]\s?\d|\d+\s?%", block)            # no invented figures, prices or stats

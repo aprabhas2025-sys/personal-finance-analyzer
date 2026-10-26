@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 CSS_PATH = Path(__file__).with_name("style.css")
 
@@ -25,20 +26,14 @@ _FEATURES = [
      '<path d="M21 12a8 8 0 01-11.6 7.1L3 21l1.9-5.4A8 8 0 1121 12z"/>'),
 ]
 
-HERO_HTML = (
-    '<div class="fa-hero"><div class="fa-hero-inner">'
-    '<div class="fa-hero-copy">'
-    '<span class="fa-eyebrow"><i></i>Personal Finance Analyzer</span>'
-    '<h1>Know exactly where your money <em>goes</em></h1>'
-    '<p>Upload a bank or UPI statement and get clean categories, unusual-charge alerts, subscriptions, budgets and a next-month forecast, in one private workspace.</p>'
-    '</div>'
-    '<div class="fa-hero-card"><small>What you get</small>'
-    '<div>Auto-categorised spending</div><div>Duplicate &amp; unusual charge alerts</div><div>Subscriptions and recurring bills</div>'
-    '<div>Budgets with early warnings</div><div>Next-month forecast</div><div>Ask questions in plain English</div>'
-    '</div></div></div>'
-)
-
-BRAND_HTML = '<div class="fa-brand"><span class="fa-logo"></span><span>Finance Analyzer</span></div>'
+HERO_PATH = Path(__file__).with_name("hero.html")
+HERO_HTML = HERO_PATH.read_text(encoding="utf-8").replace("\r", "").replace("\n", "")
+_LOGIN_COMPONENT = components.declare_component("finora_login_page", path=str(Path(__file__).with_name("login_component")))
+BRAND_HTML = ('<div class="fa-brand"><span class="fa-logo" aria-hidden="true">F</span><span>Finora</span>'
+              '<svg class="fa-brand-mark" viewBox="0 0 24 24" aria-label="Financial insights" role="img" '
+              'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+              '<path d="M4 17.5 9 12l3.5 3.5L20 7.5"/><path d="M14.5 7.5H20V13"/>'
+              '<circle cx="12" cy="12" r="10.5"/></svg></div>')
 
 FEATURES_HTML = (
     '<div class="fa-section-head"><small>Features</small><h2>Everything your statement can tell you</h2></div><div class="fa-grid">'
@@ -62,7 +57,7 @@ TRUST_HTML = (
     'On a hosted demo that file lives on the server, so use the sample data unless you trust the host or run the app yourself.</p></div></div>'
 )
 
-FOOTER_HTML = '<div class="fa-footer">Personal Finance Analyzer &middot; a portfolio project &middot; not financial advice</div>'
+FOOTER_HTML = '<div class="fa-footer">Finora &middot; a personal finance workspace &middot; not financial advice</div>'
 
 
 def css() -> str:
@@ -84,5 +79,13 @@ def html(block: str):
     st.markdown(block, unsafe_allow_html=True)
 
 
-def hero():
-    html(HERO_HTML)
+def hero(hosted=False):
+    components.html(HERO_HTML.replace("<!--HOSTED_NOTICE-->", '<div class="fa-hosted-note">Hosted demo — use the built-in sample data unless you trust the host.</div>' if hosted else ""), height=900, scrolling=True)
+
+
+
+
+
+def login_page(error=None):
+    """Render the supplied login page and receive its sign-in/back actions."""
+    return _LOGIN_COMPONENT(error=error, default=None, key="finora_login")

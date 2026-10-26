@@ -15,9 +15,9 @@ from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
 
-st.set_page_config(page_title="Personal Finance Analyzer", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Finora | Personal Finance", page_icon="📈", layout="wide")
 USER = landing.require_login()          # signed out: landing / sign-in / sign-up page, then st.stop(). Signed in: carry on to the app.
-st.title("Personal Finance Analyzer")
+st.title("Finora")
 HOSTED = config.is_hosted()
 st.caption(config.HOSTED_CAPTION if HOSTED else config.LOCAL_CAPTION)
 if st.session_state.pop("just_signed_in", False):

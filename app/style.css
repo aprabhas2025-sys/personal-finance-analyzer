@@ -162,7 +162,9 @@ h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.015em; }
 
 /* ---------- landing + auth ---------- */
 .fa-brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--ink); padding: 6px 0; }
-.fa-logo { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #1d4ed8, #a78bfa); box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.fa-logo { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: linear-gradient(135deg, #1d4ed8, #a78bfa); box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.5); font-size: 15px; font-weight: 750; }
+.fa-brand-mark { width: 19px; height: 19px; margin-left: -3px; color: #b8a5ff; opacity: .9; transition: transform .3s ease, color .3s ease; }
+.fa-brand:hover .fa-brand-mark { transform: translate(2px,-2px); color: #fff; }
 .fa-section-head { text-align: center; margin: 3.2rem 0 1.4rem; }
 .fa-section-head small, .fa-trust small { display: block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
 .fa-section-head h2 { margin: 0; font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 600; letter-spacing: -0.025em; color: var(--ink); }
@@ -185,9 +187,61 @@ h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.015em; }
 [data-testid="stForm"] { padding: 22px; border-radius: 24px; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--shadow); backdrop-filter: blur(20px); }
 @media (prefers-reduced-motion: reduce) { .fa-card { transition: none; } }
 
-.st-key-fa_nav .stButton { display: flex; justify-content: flex-end; }
+.st-key-fa_nav .stButton { display: flex; justify-content: flex-start; }
 .st-key-fa_cta .stButton, .st-key-fa_auth .stButton { display: flex; justify-content: center; }
 [data-testid="stFormSubmitButton"] > button { width: 100%; border-radius: 999px; padding: 0.6rem 1.2rem; font-weight: 600; }
 .st-key-fa_nav .stElementContainer, .st-key-fa_cta .stElementContainer, .st-key-fa_auth .stElementContainer,
 .st-key-fa_nav .element-container, .st-key-fa_cta .element-container, .st-key-fa_auth .element-container { width: 100% !important; }
 .st-key-fa_cta { margin-top: 18px; }
+
+/* Full-viewport Spline hero on the signed-out landing page */
+.st-key-fa_nav { position: fixed !important; top: 4px !important; left: 50% !important; transform: translateX(-50%); z-index: 10001 !important; width: min(1280px, 100vw) !important; max-width: none !important; padding: 0 28px !important; box-sizing: border-box; }
+.st-key-fa_nav .fa-brand, .st-key-fa_nav .fa-brand span { color: #f5f5f7 !important; }
+.st-key-fa_nav .fa-logo { background: #f5f5f7 !important; color: #101014 !important; }
+.st-key-fa_nav .stButton button { min-height: 40px; border-radius: 999px; color: #f5f5f7 !important; background: rgba(8,8,10,.72) !important; border: 1px solid rgba(255,255,255,.16) !important; backdrop-filter: blur(14px); }
+.st-key-fa_nav .stButton button:hover { border-color: rgba(255,255,255,.35) !important; background: rgba(255,255,255,.1) !important; }
+.st-key-fa_hero { position: relative; width: 100vw !important; max-width: none !important; margin-top: -4.2rem !important; margin-left: calc(50% - 50vw) !important; padding: 0 !important; }
+.st-key-fa_hero [data-testid="stIFrame"] { width: 100vw !important; max-width: none !important; }
+.st-key-fa_hero iframe { display: block !important; width: 100vw !important; max-width: none !important; height: 100vh !important; height: 100dvh !important; border: 0 !important; }
+@media (max-width: 900px) {
+  .st-key-fa_nav { padding: 0 18px !important; }
+  .st-key-fa_hero iframe { height: max(1000px, 100svh) !important; height: max(1000px, 100dvh) !important; }
+}
+
+
+/* Keep the signed-out experience as one dark, viewport-sized scroll surface. */
+body:has(.st-key-fa_hero) { background: #050506 !important; overflow: hidden !important; }
+body:has(.st-key-fa_hero) [data-testid="stAppViewContainer"],
+body:has(.st-key-fa_hero) [data-testid="stMain"],
+body:has(.st-key-fa_hero) [data-testid="stAppViewBlockContainer"],
+body:has(.st-key-fa_hero) .block-container { background: #050506 !important; overflow: hidden !important; }
+body:has(.st-key-fa_hero) [data-testid="stHeader"],
+body:has(.st-key-fa_hero) [data-testid="stToolbar"] { display: none !important; height: 0 !important; }
+body:has(.st-key-fa_hero) .block-container { width: 100vw !important; max-width: none !important; height: 100dvh !important; padding: 0 !important; margin: 0 !important; }
+.st-key-fa_hero { position: fixed !important; inset: 0 !important; z-index: 2 !important; width: 100vw !important; height: 100dvh !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+.st-key-fa_hero [data-testid="stIFrame"], .st-key-fa_hero iframe { display: block !important; width: 100vw !important; max-width: none !important; height: 100dvh !important; border: 0 !important; }
+.st-key-fa_nav .stButton button{position:relative;width:148px!important;min-height:42px!important;padding:0 14px 0 61px!important;overflow:hidden;border-radius:999px!important;text-align:left;color:#f5f5f7!important;background:linear-gradient(100deg,rgba(167,139,250,.14),rgba(8,8,10,.84) 48%)!important;border:1px solid rgba(190,170,255,.3)!important;box-shadow:0 8px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06)!important;}
+.st-key-fa_nav .stButton button p{position:relative;z-index:2;margin:0!important;font-size:13px;font-weight:600;}
+.st-key-fa_nav .stButton button:before{content:"";position:absolute;z-index:1;left:31px;top:9px;width:13px;height:22px;border:1px solid rgba(210,196,255,.9);border-radius:2px;background:linear-gradient(90deg,rgba(167,139,250,.38),rgba(12,10,20,.92));box-shadow:inset 0 0 8px rgba(167,139,250,.36),0 0 10px rgba(167,139,250,.3);transform-origin:left center;transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .35s;}
+.st-key-fa_nav .stButton button:after{content:"";position:absolute;z-index:2;left:19px;bottom:11px;width:6px;height:9px;border-radius:4px 4px 2px 2px;background:#cfc1ff;box-shadow:0 -5px 0 -1px #f4efff,2px 7px 0 -2px #cfc1ff,-2px 7px 0 -2px #cfc1ff;transform-origin:center bottom;}
+.st-key-fa_nav .stButton button:hover:before,.st-key-fa_nav .stButton button:focus-visible:before{transform:perspective(38px) rotateY(-58deg);box-shadow:inset 0 0 12px rgba(167,139,250,.7),0 0 16px rgba(167,139,250,.55);}
+.st-key-fa_nav .stButton button:hover:after,.st-key-fa_nav .stButton button:focus-visible:after{animation:fa-miniature-enter .85s cubic-bezier(.2,.8,.2,1) both;}
+@keyframes fa-miniature-enter{0%{transform:translateX(0) rotate(0);opacity:1}35%{transform:translateX(3px) rotate(-12deg);opacity:1}75%{transform:translateX(11px) rotate(5deg);opacity:.85}100%{transform:translateX(15px) rotate(0);opacity:.25}}
+@media(prefers-reduced-motion:reduce){.st-key-fa_nav .stButton button:before,.st-key-fa_nav .stButton button:after{transition:none!important;animation:none!important}}@media(max-width:900px){.st-key-fa_nav [data-testid="stHorizontalBlock"]{display:flex!important;align-items:center;gap:10px!important;width:auto!important}.st-key-fa_nav [data-testid="column"]:first-child,.st-key-fa_nav [data-testid="column"]:last-child{flex:0 0 auto!important;width:auto!important;min-width:0!important}.st-key-fa_nav [data-testid="column"]:nth-child(2){display:none!important}.st-key-fa_nav .stButton button{width:132px!important}}
+@media(max-width:360px){.st-key-fa_nav .stButton button{width:120px!important;padding-left:52px!important}.st-key-fa_nav .fa-brand{gap:7px;font-size:.98rem}.st-key-fa_nav .fa-brand-mark{width:16px;height:16px}}
+/* Supplied Finora sign-in page, mounted as a full-screen component. */
+body:has(.st-key-fa_login) { background:#050506!important; overflow:hidden!important; }
+body:has(.st-key-fa_login) [data-testid="stAppViewContainer"],
+body:has(.st-key-fa_login) [data-testid="stMain"],
+body:has(.st-key-fa_login) [data-testid="stAppViewBlockContainer"],
+body:has(.st-key-fa_login) .block-container { background:#050506!important; overflow:hidden!important; }
+body:has(.st-key-fa_login) [data-testid="stHeader"],
+body:has(.st-key-fa_login) [data-testid="stToolbar"] { display:none!important; height:0!important; }
+body:has(.st-key-fa_login) .block-container { width:100vw!important; max-width:none!important; height:100dvh!important; padding:0!important; margin:0!important; }
+.st-key-fa_login { position:fixed!important; inset:0!important; z-index:3!important; width:100vw!important; height:100dvh!important; max-width:none!important; margin:0!important; padding:0!important; }
+.st-key-fa_login [data-testid="stIFrame"], .st-key-fa_login iframe { display:block!important; width:100vw!important; max-width:none!important; height:100dvh!important; border:0!important; }
+
+.st-key-fa_login [data-testid="stButton"]{position:fixed!important;top:76px!important;left:24px!important;z-index:20!important;width:auto!important}
+.st-key-fa_login [data-testid="stButton"] button{min-width:168px!important;min-height:44px!important;border:1px solid rgba(205,190,245,.28)!important;border-radius:999px!important;background:rgba(16,14,20,.88)!important;color:#f5f3fa!important;backdrop-filter:blur(14px)!important;box-shadow:0 8px 28px rgba(0,0,0,.25)!important}
+.st-key-fa_login [data-testid="stButton"] button:hover{border-color:rgba(195,173,255,.65)!important;background:rgba(45,35,61,.92)!important;color:#d8c9ff!important}
+.st-key-fa_login [data-testid="stButton"] button:focus-visible{outline:2px solid #b69cff!important;outline-offset:3px!important}
