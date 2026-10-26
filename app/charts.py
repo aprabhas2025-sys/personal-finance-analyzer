@@ -145,3 +145,17 @@ def fig_forecast_by_category(mat: pd.DataFrame, fc: pd.DataFrame):
     fig.update_layout(barmode="group")
     fig.update_xaxes(tickprefix="₹", separatethousands=True)
     return _style(fig, "Forecast by category", height=max(340, 36 * len(cats) + 120))
+
+
+# ---------------- Day 5: budgets ----------------
+def fig_budget(table: pd.DataFrame, month_label: str = ""):
+    """Spent (latest month) vs monthly limit, per category. Needs the table from app.budgets.status_table."""
+    if table is None or table.empty:
+        return None
+    t = table.sort_values("pct_used")
+    colors = [SPEND if s in ("over", "will exceed") else "#E0A100" if s == "near limit" else INCOME for s in t["status"]]
+    fig = go.Figure([go.Bar(y=t["category"], x=t["limit"], orientation="h", name="Limit", marker_color="#D5DAE0"),
+                     go.Bar(y=t["category"], x=t["spent"], orientation="h", name=f"Spent {month_label}".strip(), marker_color=colors)])
+    fig.update_layout(barmode="overlay")
+    fig.update_xaxes(tickprefix="₹", separatethousands=True)
+    return _style(fig, "Budget vs spend", height=max(300, 40 * len(t) + 120))

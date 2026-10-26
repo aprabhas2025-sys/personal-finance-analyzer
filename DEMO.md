@@ -11,6 +11,7 @@ Record at 1080p, browser zoom 110%, sample data loaded fresh. Say "synthetic" ou
 | 1:00 | **Anomalies** tab | "Flags duplicate charges and amounts far outside what is normal for the category. On synthetic data about 0.8 precision and recall; a prompt to check, not proof." |
 | 1:15 | **Subscriptions** tab | "Finds regular payments and their monthly commitment: 0.98 precision, 0.99 recall on synthetic data." |
 | 1:30 | **Forecast** tab, scroll to the backtest table | "Next month's spend, with a rolling backtest on the user's own data. On synthetic data it is only slightly better than a moving average, and I say so." |
+| 1:40 | **Budgets** tab: click *Suggest from my average*, Save | "Set budgets in one click; it warns when a category is over, or forecast to exceed next month." |
 | 1:45 | **Transactions > Review & correct**: fix one row, apply | "Fix one merchant and it spreads to that merchant's other rows. Run locally, the model also retrains from the correction." |
 | 2:00 | README metrics table | "Real-data accuracy: <fill in after ml.real_eval>. Everything else is synthetic and labelled that way." |
 

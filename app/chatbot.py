@@ -34,7 +34,7 @@ If a question is about the app itself, use the facts below. If it is unrelated, 
 
 {FACTS}"""
 
-HELP = ("I can answer questions like: *How much did I spend on Groceries last month? What are my subscriptions? Any unusual transactions? "
+HELP = ("I can answer questions like: *How much did I spend on Groceries last month? Am I over budget? What are my subscriptions? Any unusual transactions? "
         "What will I spend next month? What is my savings rate? Top merchants?* I can also explain how anomalies, the forecast, "
         "corrections and privacy work.")
 
@@ -91,6 +91,13 @@ def rule_based(question: str, tools: ChatTools) -> dict:
             return done("No recurring payments found (at least 3 regular payments to one merchant are needed).")
         lines = [f"- {s['merchant']}: {_inr(s['avg_amount'])} every {s['every_days']} days (~{_inr(s['monthly_cost'])}/month), next due {s['next_due']}" for s in r["subscriptions"]]
         return done(f"Recurring payments, about {_inr(r['monthly_commitment'])} per month:\n" + "\n".join(lines))
+    if re.search(r"budget|over limit|overspen|within limit", q):
+        r = call("budget_status")
+        if not r.get("budgets"):
+            return done("You haven't set any budgets yet. Open the Budgets tab, set monthly limits (or click *Suggest from my average*) and save.")
+        lines = [f"- {b['category']}: {_inr(b['spent'])} of {_inr(b['limit'])} ({b['percent_used']:.0f}%), {b['status']}" for b in r["budgets"]]
+        part = " (month not finished)" if r["month_is_partial"] else ""
+        return done(f"Budgets for {r['month']}{part}:\n" + "\n".join(lines))
     if re.search(r"anomal|unusual|duplicate|suspicious|fraud", q):
         r = call("anomalies")
         if "error" in r:

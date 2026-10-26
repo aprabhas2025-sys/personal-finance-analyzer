@@ -6,10 +6,10 @@ from app.chat_tools import ChatTools
 
 MAX_AI_MESSAGES = 30          # per browser session: caps API spend on a public demo
 EXAMPLES = ["How much did I spend on Groceries last month?", "What are my subscriptions?", "Any unusual transactions?",
-            "What will I spend next month?", "What is my savings rate?", "How is my data stored?"]
+            "What will I spend next month?", "What is my savings rate?", "Am I over budget?", "How is my data stored?"]
 
 
-def render(full):
+def render(full, budgets=None):
     ai_available = chatbot.make_client() is not None
     use_ai = False
     if ai_available:
@@ -39,7 +39,7 @@ def render(full):
         with st.chat_message("user"):
             st.markdown(q)
         with st.chat_message("assistant"), st.spinner("Thinking…"):
-            out = chatbot.answer(q, [{"role": m["role"], "content": m["content"]} for m in hist], ChatTools(full),
+            out = chatbot.answer(q, [{"role": m["role"], "content": m["content"]} for m in hist], ChatTools(full, budgets=budgets),
                                  use_ai=use_ai and not capped)
         meta = ("AI" if out["source"] == "ai" else "Rules") + (f" · looked up: {', '.join(out['tool_calls'])}" if out["tool_calls"] else "")
         if capped:

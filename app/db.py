@@ -21,6 +21,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_source TEXT NOT NULL DEFAULT 'rule'   -- rule | ml | user | existing
 )"""
 
+BUDGET_SCHEMA = """
+CREATE TABLE IF NOT EXISTS budgets (
+    category TEXT PRIMARY KEY,
+    monthly_limit REAL NOT NULL CHECK (monthly_limit > 0)
+)"""
+
 
 def session_path(session_id: str) -> Path:
     """Per-visitor DB file, so two sessions never read or overwrite each other's statement.
@@ -60,6 +66,7 @@ def _conn(path=None):
     conn = sqlite3.connect(path)
     try:
         conn.execute(SCHEMA)
+        conn.execute(BUDGET_SCHEMA)
         yield conn
         conn.commit()
     except Exception:
@@ -119,6 +126,29 @@ def apply_predictions(rows: pd.DataFrame, path=None) -> int:
         return cur.rowcount
 
 
+def save_budgets(budgets: dict, path=None) -> int:
+    """Replace the saved monthly limits. Entries with a missing, zero or negative limit are dropped."""
+    rows = []
+    for cat, lim in (budgets or {}).items():
+        try:
+            lim = float(lim)
+        except (TypeError, ValueError):
+            continue
+        if lim > 0 and lim == lim and lim != float("inf"):
+            rows.append((str(cat), lim))
+    with _conn(path) as c:
+        c.execute("DELETE FROM budgets")
+        c.executemany("INSERT INTO budgets (category, monthly_limit) VALUES (?,?)", rows)
+    return len(rows)
+
+
+def load_budgets(path=None) -> dict:
+    with _conn(path) as c:
+        return dict(c.execute("SELECT category, monthly_limit FROM budgets ORDER BY category").fetchall())
+
+
 def clear(path=None):
+    """Remove everything this session stored (transactions and budgets)."""
     with _conn(path) as c:
         c.execute("DELETE FROM transactions")
+        c.execute("DELETE FROM budgets")

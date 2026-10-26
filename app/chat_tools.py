@@ -38,13 +38,16 @@ TOOL_SCHEMAS = [
      "input_schema": {"type": "object", "properties": {}}},
     {"name": "anomalies", "description": "Transactions flagged as unusual: duplicate charges or amounts far above normal for their category.",
      "input_schema": {"type": "object", "properties": {}}},
+    {"name": "budget_status", "description": "The user's saved monthly category budgets compared with the latest month's spend and the next-month forecast.",
+     "input_schema": {"type": "object", "properties": {}}},
     {"name": "forecast", "description": "Forecast of next month's spend by category.",
      "input_schema": {"type": "object", "properties": {}}},
 ]
 
 
 class ChatTools:
-    def __init__(self, df: pd.DataFrame, api=None):
+    def __init__(self, df: pd.DataFrame, api=None, budgets: dict | None = None):
+        self.budgets = dict(budgets or {})
         self.df = df.copy()
         self.df["date"] = pd.to_datetime(self.df["date"])
         self._api = api
@@ -141,6 +144,19 @@ class ChatTools:
                 "note": "a prompt to check, not proof of a problem; only duplicates and unusually large amounts are detected",
                 "transactions": [{"date": str(pd.Timestamp(r.date).date()), "description": str(r.description)[:60], "amount": round(float(r.amount), 2),
                                   "reason": str(r.anomaly_reason)} for r in fl.head(MAX_ROWS).itertuples()]}
+
+    def _t_budget_status(self):
+        if not self.budgets:
+            return {"budgets": [], "note": "no budgets are set; the user can set them in the Budgets tab"}
+        from app import budgets as B
+        try:
+            fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))
+        except Exception:
+            fc = None
+        t, meta = B.status_table(self.df, self.budgets, fc)
+        return {"month": meta["month"], "month_is_partial": meta["partial"], "budgets": [
+            {"category": r.category, "limit": r.limit, "spent": r.spent, "percent_used": round(r.pct_used * 100, 1),
+             "forecast_next_month": r.forecast, "status": r.status} for r in t.itertuples()]}
 
     def _t_forecast(self):
         fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))

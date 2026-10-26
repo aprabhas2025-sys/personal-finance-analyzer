@@ -47,6 +47,8 @@ app/       Person B: Streamlit app
   dashboard.py      Dashboard tab: KPIs, charts, unusual transactions, recurring payments
   config.py         local vs hosted mode (RENDER / FINANCE_HOSTED) and the matching privacy captions
   db.py             SQLite storage; one file per browser session (data/sessions/<id>.db), idle ones purged after 24 h
+  budgets.py        monthly category budgets: spent vs limit, forecast-based warnings, suggested limits (pure pandas, tested)
+  budgets_ui.py     the Budgets tab (limits are saved per session in the same SQLite file)
   chat_tools.py     read-only aggregate queries over the statement (spend, savings, merchants, subscriptions, anomalies, forecast)
   chatbot.py        'Ask' assistant: Gemini function calling over chat_tools, or keyword rules when AI is off / no key
   chat_ui.py        the Ask tab (AI is opt-in per session, 30 AI messages per session)
@@ -73,6 +75,12 @@ tests/
   (visitors cannot see each other's data), idle sessions are deleted after 24 h, and the file is lost on restart. The app says this on the page.
 - **Model retraining is local-only.** A retrained model is one global file shared by everyone using that server, so the hosted demo applies
   corrections to the user's own session (and same-merchant rows) but never retrains. Do not upload a statement you would not send to a server.
+
+## Budgets tab
+Set a monthly limit per category (or click *Suggest from my average*: average monthly spend over complete months, +10%, rounded up to ₹100). Each category is then
+marked **over** (latest month's spend above the limit), **will exceed** (next-month forecast above the limit), **near limit** (80%+ used) or **ok**.
+Limits live only in the session's own DB file and are removed by *Clear stored data*. The forecast is the average of past months, so treat "will exceed" as a hint.
+The Ask tab can answer "Am I over budget?".
 
 ## Ask tab (chat assistant)
 Ask things like *"How much did I spend on Groceries last month?"*, *"What are my subscriptions?"* or *"How is my data stored?"*.
