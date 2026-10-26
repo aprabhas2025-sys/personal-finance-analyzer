@@ -3,3 +3,10 @@ maxUploadSize = 5          # MB. A year of statements is well under 1 MB; keeps 
 
 [browser]
 gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#2563EB"
+backgroundColor = "#EAF1FF"
+secondaryBackgroundColor = "#F3F7FF"
+textColor = "#0B1B3A"

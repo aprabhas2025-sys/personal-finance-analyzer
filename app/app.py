@@ -12,13 +12,14 @@ import streamlit as st
 
 import uuid
 
-from app import budgets_ui, chat_ui, config, dashboard, db, insights
+from app import budgets_ui, chat_ui, config, dashboard, db, insights, theme
 from app.cleaning import CleaningError, clean_transactions
 from ml import api
 from ml.schema import CATEGORIES
 
-st.set_page_config(page_title="Personal Finance Analyzer", page_icon="💸", layout="wide")
-st.title("💸 Personal Finance Analyzer")
+st.set_page_config(page_title="Personal Finance Analyzer", page_icon="📈", layout="wide")
+theme.inject()
+theme.hero()
 HOSTED = config.is_hosted()
 st.caption(config.HOSTED_CAPTION if HOSTED else config.LOCAL_CAPTION)
 

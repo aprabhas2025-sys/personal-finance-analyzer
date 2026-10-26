@@ -45,6 +45,7 @@ app/       Person B: Streamlit app
   app.py            upload, metrics, table, charts, Dashboard tab
   charts.py         pure plotly figure functions (light theme only)
   dashboard.py      Dashboard tab: KPIs, charts, unusual transactions, recurring payments
+  theme.py / style.css  premium look: dark hero with light streaks, frosted-glass cards and tabs, serif-italic accents (CSS only, no images)
   config.py         local vs hosted mode (RENDER / FINANCE_HOSTED) and the matching privacy captions
   db.py             SQLite storage; one file per browser session (data/sessions/<id>.db), idle ones purged after 24 h
   budgets.py        monthly category budgets: spent vs limit, forecast-based warnings, suggested limits (pure pandas, tested)
@@ -113,3 +114,8 @@ Every row is synthetic unless it says REAL. Reports: `metrics/`.
 4. The free plan sleeps when idle (first load ~30-60 s) and has an ephemeral disk, which is fine because sessions are temporary by design.
 
 Run the hosted configuration locally to check it: `FINANCE_HOSTED=1 streamlit run app/app.py`.
+
+## Look and feel
+Dark hero banner with soft light streaks, frosted-glass metric cards, a floating pill tab bar and serif-italic accents, all CSS (`app/style.css`), no images.
+Fonts (Inter, Instrument Serif) load from Google Fonts and fall back to system fonts offline. Charts stay on white cards on purpose (readable, and tested).
+Colours are CSS variables at the top of `style.css`; the Streamlit base theme is in `.streamlit/config.toml`. Respects `prefers-reduced-motion` and works at phone width.

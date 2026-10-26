@@ -28,8 +28,9 @@ def overall_savings_rate(df: pd.DataFrame):
 
 
 def _style(fig, title, height=340):
-    fig.update_layout(template=TEMPLATE, title=title, height=height, margin=dict(l=10, r=10, t=50, b=10),
-                      legend=dict(orientation="h", y=1.12, x=0), paper_bgcolor="white", plot_bgcolor="white")
+    fig.update_layout(template=TEMPLATE, title=title, height=height, margin=dict(l=14, r=14, t=50, b=56),
+                      font=dict(family="Inter, system-ui, sans-serif", color="#0b1b3a"),
+                      legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0), paper_bgcolor="white", plot_bgcolor="white")
     return fig
 
 
@@ -64,7 +65,7 @@ def fig_category_breakdown(df, top=None):
         d = d.tail(top)
     fig = go.Figure(go.Bar(x=d["amount"], y=d["category"], orientation="h", marker_color=SPEND,
                            text=[f"₹{v:,.0f}" for v in d["amount"]], textposition="outside", cliponaxis=False))
-    fig.update_xaxes(tickprefix="₹", separatethousands=True)
+    fig.update_xaxes(tickprefix="₹", separatethousands=True, range=[0, float(d["amount"].max()) * 1.2])   # room for the outside value label
     return _style(fig, "Spending by category", height=max(300, 28 * len(d) + 120))
 
 
