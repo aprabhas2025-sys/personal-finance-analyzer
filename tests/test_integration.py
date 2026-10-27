@@ -30,9 +30,11 @@ def test_pipeline_end_to_end(tmp_path):
 def test_streamlit_app_runs_with_sample_data(tmp_path, monkeypatch):
     AppTest = pytest.importorskip("streamlit.testing.v1").AppTest
     monkeypatch.setattr(db, "DEFAULT_PATH", tmp_path / "app.db")
-    at = AppTest.from_file(str(APP), default_timeout=60).run()
+    at = AppTest.from_file(str(APP), default_timeout=60)
+    at.session_state["user"] = {"id": "ab12", "email": "me@example.com"}
+    at.run()
     assert not at.exception
-    at.sidebar.button[0].click().run()                               # "Use sample data"
+    next(b for b in at.sidebar.button if b.label == "Use sample data").click().run()
     assert not at.exception, [e.value for e in at.exception]
     assert [t.label for t in at.tabs][:2] == ["Dashboard", "Transactions"]
     labels = [m.label for m in at.metric]

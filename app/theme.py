@@ -1,5 +1,4 @@
 """Visual theme: injects app/style.css and renders the hero banner. Styling only; it never touches data and never breaks the app."""
-from functools import lru_cache
 from pathlib import Path
 
 import streamlit as st
@@ -28,12 +27,7 @@ _FEATURES = [
 ]
 
 HERO_PATH = Path(__file__).with_name("hero.html")
-
-# Lazy-load hero HTML instead of reading at import time
-@lru_cache(maxsize=1)
-def _load_hero_html() -> str:
-    return HERO_PATH.read_text(encoding="utf-8").replace("\r", "").replace("\n", "")
-
+HERO_HTML = HERO_PATH.read_text(encoding="utf-8").replace("\r", "").replace("\n", "")
 _LOGIN_COMPONENT = components.declare_component("finora_login_page", path=str(Path(__file__).with_name("login_component")))
 BRAND_HTML = ('<div class="fa-brand"><span class="fa-logo" aria-hidden="true">F</span><span>Finora</span>'
               '<svg class="fa-brand-mark" viewBox="0 0 24 24" aria-label="Financial insights" role="img" '
@@ -66,8 +60,6 @@ TRUST_HTML = (
 FOOTER_HTML = '<div class="fa-footer">Finora &middot; a personal finance workspace &middot; not financial advice</div>'
 
 
-# Cache the CSS in memory so it's not re-read on every rerun
-@lru_cache(maxsize=1)
 def css() -> str:
     """The stylesheet with blank lines removed (a blank line can end an HTML block in Markdown). Empty string if the file is missing."""
     try:
@@ -88,8 +80,7 @@ def html(block: str):
 
 
 def hero(hosted=False):
-    hero_html = _load_hero_html()
-    components.html(hero_html.replace("<!--HOSTED_NOTICE-->", '<div class="fa-hosted-note">Hosted demo — use the built-in sample data unless you trust the host.</div>' if hosted else ""), height=900, scrolling=True)
+    components.html(HERO_HTML.replace("<!--HOSTED_NOTICE-->", '<div class="fa-hosted-note">Hosted demo — use the built-in sample data unless you trust the host.</div>' if hosted else ""), height=900, scrolling=True)
 
 
 
