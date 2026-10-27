@@ -93,7 +93,7 @@ def test_chat_tool_and_rules_answer_budget_questions():
 def test_budget_chart_colours_and_empty():
     t, _ = B.status_table(_df(), {"Dining Out": 1200, "Groceries": 5000}, FC)
     fig = charts.fig_budget(t, "2026-03")
-    assert fig.layout.paper_bgcolor == "white" and len(fig.data) == 2
+    assert fig.layout.paper_bgcolor == charts.CLEAR and len(fig.data) == 2     # transparent: the chart sits on a glass card
     assert dict(zip(fig.data[1].y, fig.data[1].marker.color))["Dining Out"] == charts.SPEND
     assert charts.fig_budget(pd.DataFrame(columns=B.COLUMNS)) is None
 

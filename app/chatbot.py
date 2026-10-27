@@ -6,6 +6,7 @@ No Streamlit here, so it is testable with a fake client.
 """
 import os
 import re
+from pathlib import Path
 
 import pandas as pd
 
@@ -136,16 +137,76 @@ def rule_based(question: str, tools: ChatTools) -> dict:
 
 
 # ---------------- AI path ----------------
-def make_client():
-    """Gemini client if GEMINI_API_KEY (or GOOGLE_API_KEY) is set and the SDK is installed, else None."""
-    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+def _dotenv_api_key() -> str | None:
+    """Read only a Gemini key from the project .env file; never log or expose its value."""
+    path = Path(__file__).resolve().parents[1] / ".env"
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        item = line.strip()
+        if not item or item.startswith("#"):
+            continue
+        if item.startswith("export "):
+            item = item[7:].lstrip()
+        name, separator, value = item.partition("=")
+        if not separator or name.strip() not in {"GEMINI_API_KEY", "GOOGLE_API_KEY"}:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        else:
+            value = value.split("#", 1)[0].strip()
+        return value or None
+    return None
+
+
+def resolve_api_key(secrets=None) -> str | None:
+    """Find a key in process environment, Streamlit secrets, then the local .env file."""
+    for name in ("GOOGLE_API_KEY", "GEMINI_API_KEY"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    if secrets is not None:
+        for name in ("GOOGLE_API_KEY", "GEMINI_API_KEY"):
+            try:
+                value = str(secrets.get(name, "") or "").strip()
+            except Exception:
+                value = ""
+            if value:
+                return value
+        try:
+            section = secrets.get("gemini", {})
+            value = str(section.get("api_key", "") or "").strip() if hasattr(section, "get") else ""
+            if value:
+                return value
+        except Exception:
+            pass
+    return _dotenv_api_key()
+
+
+def make_client(api_key: str | None = None):
+    """Create a Gemini client, or return None when no supported key source is configured."""
+    key = (api_key or resolve_api_key() or "").strip()
     if not key:
         return None
-    try:
-        from google import genai
-        return genai.Client(api_key=key)
-    except Exception:
-        return None
+    from google import genai
+    return genai.Client(api_key=key)
+
+
+def _ai_error_hint(error: Exception) -> str:
+    code = getattr(error, "code", None) or getattr(error, "status_code", None)
+    detail = str(error).lower()
+    if code in (401, 403) or "api key not valid" in detail or "invalid api key" in detail:
+        return "Gemini rejected the API key or its permissions. Check the key in .env or Streamlit secrets."
+    if code == 404 or "model not found" in detail:
+        return f"Gemini model '{MODEL}' was not found. Check GEMINI_MODEL or use the default model."
+    if code == 429 or "quota" in detail or "rate limit" in detail:
+        return "Gemini's request quota or rate limit was reached. Try again later or check Google AI Studio usage."
+    if isinstance(error, ImportError):
+        return "The Google Gen AI SDK is missing. Install the project's requirements."
+    return f"Gemini request failed ({type(error).__name__}). Check the key, model, and network connection."
 
 
 def _declarations():
@@ -190,15 +251,15 @@ def answer(question: str, history: list, tools: ChatTools, use_ai: bool = False,
     if not question:
         return {"text": HELP, "source": "rules", "tool_calls": []}
     if use_ai:
-        client = client or make_client()
-        if client is not None:
-            try:
-                return llm_answer(question, history, tools, client, model)
-            except Exception as e:
+        try:
+            client = client or make_client()
+            if client is None:
                 out = rule_based(question, tools)
-                out["note"] = f"AI assistant unavailable ({type(e).__name__}); answered without AI."
+                out["note"] = "No Gemini API key configured; answered without AI. Add GEMINI_API_KEY to the environment, .env, or Streamlit secrets."
                 return out
-        out = rule_based(question, tools)
-        out["note"] = "No Gemini API key configured; answered without AI."
-        return out
+            return llm_answer(question, history, tools, client, model)
+        except Exception as e:
+            out = rule_based(question, tools)
+            out["note"] = f"Gemini unavailable: {_ai_error_hint(e)} Used the built-in answer instead."
+            return out
     return rule_based(question, tools)

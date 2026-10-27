@@ -1,71 +1,80 @@
-"""Signed-out landing page and the single authentication gate used by app.py."""
+"""Signed-out experience: landing page, sign-in, sign-up. `require_login()` is the single gate used by app.py."""
 import streamlit as st
 
-from app import auth, config, theme
+from app import auth, theme
 
 
-def _nav():
-    """Brand and sign-in affordance on the landing page."""
-    with st.container(key="fa_nav"):
-        brand, _, action = st.columns([1.25, 5.65, 1.1], vertical_alignment="center")
-        brand.markdown(theme.BRAND_HTML, unsafe_allow_html=True)
-        if action.button("Sign in", key="landing_signin"):
-            st.session_state["login_view"] = "signin"
-            st.session_state.pop("login_error", None)
-            st.session_state.pop("login_attempt_id", None)
-            st.rerun()
-
-
-def render_landing():
-    _nav()
-    with st.container(key="fa_hero"):
-        theme.hero(hosted=config.is_hosted())
-
-
-def _render_signin():
-    with st.container(key="fa_login"):
-        if st.button("← Back to Finora", key="login_back"):
-            st.session_state["login_view"] = "landing"
-            st.session_state.pop("login_error", None)
-            st.session_state.pop("login_attempt_id", None)
-            st.rerun()
-        result = theme.login_page(error=st.session_state.get("login_error"))
-    if not isinstance(result, dict):
-        return
-    action = result.get("action")
-    if action == "back":
-        st.session_state["login_view"] = "landing"
-        st.session_state.pop("login_error", None)
-        st.session_state.pop("login_attempt_id", None)
-        st.rerun()
-    if action != "signin":
-        return
-    attempt_id = result.get("attemptId")
-    if not attempt_id or attempt_id == st.session_state.get("login_attempt_id"):
-        return
-    st.session_state["login_attempt_id"] = attempt_id
-    email = result.get("email", "")
-    password = result.get("password", "")
-    user, error = auth.authenticate(email, password)
-    if error:
-        st.session_state["login_error"] = error
-        st.rerun()
-    st.session_state["user"] = user
-    st.session_state["just_signed_in"] = True
-    st.session_state["login_view"] = "landing"
-    st.session_state.pop("login_error", None)
-    st.session_state.pop("login_attempt_id", None)
+def _go(view: str):
+    st.query_params.pop('view', None)
+    st.session_state['view'] = view
     st.rerun()
 
 
+def render_landing():
+    theme.inject_landing()
+    action = theme.hero()
+    if isinstance(action, dict):
+        view = action.get("action")
+        action_id = action.get("actionId")
+        if view in ("signin", "signup") and action_id != st.session_state.get("hero_action_id"):
+            st.session_state["hero_action_id"] = action_id
+            _go(view)
+
+
+def _render_account(mode: str):
+    with st.container(key="fa_login"):
+        result = theme.login_page(mode=mode, error=st.session_state.get("account_error"))
+    if not isinstance(result, dict):
+        return
+
+    action = result.get("action")
+    action_id = result.get("attemptId")
+    if action in ("switch", "back"):
+        if not action_id or action_id == st.session_state.get("account_nav_action_id"):
+            return
+        st.session_state["account_nav_action_id"] = action_id
+        st.session_state.pop("account_error", None)
+        st.session_state.pop("account_attempt_id", None)
+        if action == "switch":
+            _go("signup" if result.get("mode") == "signup" else "signin")
+        _go("landing")
+    if action != mode:
+        return
+
+    attempt_id = action_id
+    if not attempt_id or attempt_id == st.session_state.get("account_attempt_id"):
+        return
+    st.session_state["account_attempt_id"] = attempt_id
+    if mode == "signup":
+        user, error = auth.create_user(result.get("email", ""), result.get("password", ""), result.get("confirm", ""))
+    else:
+        user, error = auth.authenticate(result.get("email", ""), result.get("password", ""))
+    if error:
+        st.session_state["account_error"] = error
+        st.rerun()
+
+    st.session_state["user"] = user
+    st.session_state["just_signed_in"] = True
+    st.session_state.pop("view", None)
+    st.session_state.pop("account_error", None)
+    st.session_state.pop("account_attempt_id", None)
+    st.query_params.pop("view", None)
+    st.rerun()
+
+
+def render_auth(mode: str):
+    _render_account(mode)
 def require_login() -> dict:
-    """Return the signed-in user or show the landing/sign-in experience."""
+    """Returns the signed-in user ({'id','email'}); otherwise shows the landing/sign-in/sign-up page and stops the script."""
     user = st.session_state.get("user")
     if user:
         return user
     theme.inject()
-    if st.session_state.get("login_view") == "signin":
-        _render_signin()
+    requested_view = st.query_params.get("view")
+    view = requested_view if requested_view in ("signin", "signup") else st.session_state.get("view", "landing")
+    if view in ("signin", "signup"):
+        theme.inject_app()                  # Shared styles load first; login_page applies the tracked-light canvas.
+        render_auth(view)
     else:
         render_landing()
     st.stop()

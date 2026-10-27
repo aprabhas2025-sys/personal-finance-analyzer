@@ -2,7 +2,10 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const cvs = $('#sky'), ctx = cvs.getContext('2d');
-const form = $('#form'), email = $('#email'), pw = $('#password'), eye = $('#toggle'), btn = $('#submit');
+const form = $('#form'), email = $('#email'), pw = $('#password'), confirm = $('#confirm'), confirmField = $('#confirm-field'), eye = $('#toggle'), btn = $('#submit');
+const title = $('#title'), subtitle = $('#subtitle'), switchCopy = $('#switch-copy');
+let mode = 'signin';
+const back = $('#back'), serverErr = $('#server-err'), signupLink = $('#signup');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = matchMedia('(pointer: coarse)').matches;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -213,9 +216,9 @@ addEventListener('pointerdown', e => {
   if (!reduce) { head.vx += (e.clientX - head.x) * .012; head.vy += (e.clientY - head.y) * .012; }
 }, { passive: true });
 document.documentElement.addEventListener('pointerleave', () => { mouse = null; });
-[email, pw].forEach(el => {
+[email, pw, confirm].forEach(el => {
   el.addEventListener('focus', () => { focusEl = el; lap = null; nextLap = performance.now() + 2500; caretKey = ''; });
-  el.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== email && document.activeElement !== pw) { focusEl = null; lap = null; } }, 0); });
+  el.addEventListener('blur', () => { setTimeout(() => { if (![email, pw, confirm].includes(document.activeElement)) { focusEl = null; lap = null; } }, 0); });
   el.addEventListener('input', () => { clearErr(el); serverErr.textContent = ''; caretKey = ''; spark(8, 2.2); if (el === pw) str = strength(pw.value); });
 });
 addEventListener('resize', () => { resize(); caretKey = ''; });
@@ -234,19 +237,28 @@ eye.addEventListener('click', () => {
 });
 
 /* ---------- Validation + submit ---------- */
-function setErr(el, msg) { const p = $('#' + (el === email ? 'email-err' : 'pw-err')); p.textContent = msg; el.setAttribute('aria-invalid', 'true'); }
-function clearErr(el) { $('#' + (el === email ? 'email-err' : 'pw-err')).textContent = ''; el.removeAttribute('aria-invalid'); }
+function setErr(el, msg) {
+  const id = el === email ? 'email-err' : el === pw ? 'pw-err' : 'confirm-err';
+  $('#' + id).textContent = msg; el.setAttribute('aria-invalid', 'true');
+}
+function clearErr(el) {
+  const id = el === email ? 'email-err' : el === pw ? 'pw-err' : 'confirm-err';
+  $('#' + id).textContent = ''; el.removeAttribute('aria-invalid');
+}
+function attemptId() { return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(); }
 form.addEventListener('submit', e => {
   e.preventDefault();
   let bad = null;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) { setErr(email, 'Enter a valid email address.'); bad = email; } else clearErr(email);
   if (pw.value.length < 8 || pw.value.length > 128) { setErr(pw, pw.value.length < 8 ? 'Password must be at least 8 characters.' : 'Password must be at most 128 characters.'); bad = bad || pw; } else clearErr(pw);
+  if (mode === 'signup' && confirm.value !== pw.value) { setErr(confirm, 'The two passwords do not match.'); bad = bad || confirm; } else clearErr(confirm);
   if (bad) { flyTo(bad, 1100, .8); spark(22, 3, '255,141,161'); form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake'); bad.focus(); return; }
   serverErr.textContent = '';
   btn.classList.add('loading'); btn.setAttribute('aria-busy', 'true'); flyTo(btn, 1e9); lap = null;
-  componentMessage('signin', { attemptId: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()), email: email.value.trim(), password: pw.value });
+  componentMessage(mode, { attemptId: attemptId(), email: email.value.trim(), password: pw.value, confirm: confirm.value });
 });
-back.addEventListener('click', () => componentMessage('back', { attemptId: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()) }));
+back.addEventListener('click', () => componentMessage('back', { attemptId: attemptId() }));
+signupLink.addEventListener('click', event => { event.preventDefault(); componentMessage('switch', { attemptId: attemptId(), mode: mode === 'signin' ? 'signup' : 'signin' }); });
 function componentMessage(action, fields = {}) {
   window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: { action, ...fields }, dataType: 'json' }, '*');
 }
@@ -255,9 +267,20 @@ function setComponentHeight() {
 }
 window.addEventListener('message', event => {
   if (event.data?.type !== 'streamlit:render') return;
-  const message = event.data.args?.error || '';
-  serverErr.textContent = message;
-  btn.classList.remove('loading', 'success'); btn.removeAttribute('aria-busy'); btn.querySelector('.lbl').textContent = 'Sign in';
+  const args = event.data.args || {};
+  mode = args.mode === 'signup' ? 'signup' : 'signin';
+  const signup = mode === 'signup';
+  document.title = signup ? 'Finora — Create account' : 'Finora — Sign in';
+  title.innerHTML = signup ? 'Create your <em>account</em>' : 'Welcome back';
+  subtitle.textContent = signup ? 'Your statement stays private to this account.' : 'Sign in to return to your financial workspace.';
+  confirmField.hidden = !signup;
+  confirm.disabled = !signup;
+  signupLink.textContent = signup ? 'Sign in' : 'Create an account';
+  switchCopy.textContent = signup ? 'Already have an account?' : 'First time here?';
+  btn.querySelector('.lbl').textContent = signup ? 'Create account' : 'Sign in';
+  pw.autocomplete = signup ? 'new-password' : 'current-password';
+  serverErr.textContent = args.error || '';
+  btn.classList.remove('loading', 'success'); btn.removeAttribute('aria-busy');
   setComponentHeight();
 });
 window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 }, '*');

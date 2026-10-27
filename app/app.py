@@ -1,156 +1,64 @@
-"""Streamlit app. Run from the project root:  streamlit run app/app.py"""
-import hashlib
+"""Signed-in Streamlit gate and embedded finance dashboard."""
+import html
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import pandas as pd
-import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
-from app import auth, budgets_ui, chat_ui, config, dashboard, db, insights, landing
-from app.cleaning import CleaningError, clean_transactions
-from ml import api
-from ml.schema import CATEGORIES
+from app import landing
 
-st.set_page_config(page_title="Finora | Personal Finance", page_icon="📈", layout="wide")
-USER = landing.require_login()          # signed out: landing / sign-in / sign-up page, then st.stop(). Signed in: carry on to the app.
-st.title("Finora")
-HOSTED = config.is_hosted()
-st.caption(config.HOSTED_CAPTION if HOSTED else config.LOCAL_CAPTION)
-if st.session_state.pop("just_signed_in", False):
-    st.toast(f"Signed in as {USER['email']}")
+st.set_page_config(page_title="Personal Finance Analyzer", page_icon="📈", layout="wide")
+user = landing.require_login()  # Keep the existing 3D landing, sign-in, and sign-up flow.
 
-SAMPLE = ROOT / "data" / "synthetic_bank_export.csv"
+if st.button("Sign out", key="finance_signout", help="Sign out of your finance workspace"):
+    st.session_state.pop("user", None)
+    st.session_state.pop("view", None)
+    st.rerun()
 
-# One private DB file per account, so users can never see or overwrite each other's data.
-DB_PATH = db.account_path(USER["id"])
-
-
-def ingest(raw: pd.DataFrame):
-    df, report = clean_transactions(raw)
-    df = api.categorize(df)                    # Person A's model
-    db.replace_all(df, DB_PATH)
-    st.session_state["report"] = report
-
-
-# ---------------- sidebar: load data ----------------
-with st.sidebar:
-    st.caption(f"Signed in as **{USER['email']}**")
-    if st.button("Sign out"):
-        st.session_state.clear()               # also drops chat history and any loaded state, so the next user starts clean
-        st.rerun()
-    with st.expander("Account"):
-        sure = st.checkbox("Permanently delete my account and data")
-        if st.button("Delete my account", disabled=not sure):
-            auth.delete_user(USER["id"])
-            st.session_state.clear()
-            st.rerun()
-    st.header("1. Load data")
-    up = st.file_uploader("Bank statement (CSV)", type=["csv"])
-    use_sample = st.button("Use sample data", disabled=not SAMPLE.exists())
-    if st.button("Clear stored data"):
-        db.clear(DB_PATH)
-        st.session_state.pop("loaded_sig", None)
-        st.session_state.pop("report", None)
-
-source = None
-if up is not None:
-    source = ("upload", up.getvalue())
-elif use_sample:
-    source = ("sample", SAMPLE.read_bytes())
-
-if source is not None:
-    sig = hashlib.md5(source[1]).hexdigest()
-    if st.session_state.get("loaded_sig") != sig:           # don't reprocess on every rerun
-        try:
-            import io
-            ingest(pd.read_csv(io.BytesIO(source[1]), dtype=str))
-            st.session_state["loaded_sig"] = sig
-        except CleaningError as e:
-            st.error(str(e))
-            st.stop()
-
-df = db.load(DB_PATH)
-if df.empty:
-    st.info("Upload a CSV or click **Use sample data** in the sidebar to begin.")
+assets = ROOT / "finance-ui" / "dist" / "assets"
+js_files = sorted(assets.glob("index-*.js"))
+css_files = sorted(assets.glob("index-*.css"))
+if len(js_files) != 1 or len(css_files) != 1:
+    st.error("The finance dashboard bundle is missing. Rebuild finance-ui/dist before starting the app.")
     st.stop()
 
-# ---------------- sidebar: filters ----------------
-with st.sidebar:
-    st.header("2. Filters")
-    dmin, dmax = df["date"].min().date(), df["date"].max().date()
-    rng = st.date_input("Date range", (dmin, dmax), min_value=dmin, max_value=dmax)
-    types = st.multiselect("Type", ["debit", "credit"], default=["debit", "credit"])
-    cats = st.multiselect("Category", sorted(df["category"].unique()))
-    text = st.text_input("Search description")
-    review_only = st.checkbox(f"Needs review only (confidence < {api.REVIEW_THRESHOLD:.0%})")
+js = js_files[0].read_text(encoding="utf-8").replace("</script", "<\\/script")
+css = css_files[0].read_text(encoding="utf-8").replace("</style", "<\\/style")
+user_id = html.escape(str(user.get("id", "local")), quote=True)
+user_email = html.escape(str(user.get("email", "")), quote=True)
 
-f = df.copy()
-if isinstance(rng, tuple) and len(rng) == 2:
-    f = f[(f["date"].dt.date >= rng[0]) & (f["date"].dt.date <= rng[1])]
-f = f[f["type"].isin(types)]
-if cats:
-    f = f[f["category"].isin(cats)]
-if text:
-    f = f[f["description"].str.contains(text, case=False, regex=False)]
-if review_only:
-    f = f[(f["confidence"] < api.REVIEW_THRESHOLD) & (f["category_source"] != "user")]
+page = (
+    "<!doctype html><html lang='en'><head><meta charset='UTF-8'>"
+    "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+    f"<style>{css}</style>"
+    "<style>html,body,#root{margin:0;width:100%;min-height:100%;}"
+    "body{min-height:100vh;overflow:auto;}"
+    ".app-shell{min-height:100vh;margin:0;border:0;border-radius:0;overflow:hidden;}"
+    ".topbar{padding-right:122px!important;}"
+    "</style></head><body>"
+    f"<div id='root' data-user-id='{user_id}' data-user-email='{user_email}'></div>"
+    f"<script type='module'>{js}</script></body></html>"
+)
 
-# ---------------- metrics ----------------
-spent, received = f.loc[f.type == "debit", "amount"].sum(), f.loc[f.type == "credit", "amount"].sum()
-n_review = int(((df["confidence"] < api.REVIEW_THRESHOLD) & (df["category_source"] != "user")).sum())
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Transactions (filtered)", f"{len(f):,}", f"of {len(df):,}", delta_color="off")
-c2.metric("Spent", f"₹{spent:,.0f}")
-c3.metric("Received", f"₹{received:,.0f}")
-c4.metric("Need review", n_review, help="Low-confidence ML predictions worth checking")
-
-# ---------------- tabs ----------------
-tab_dash, tab_tx, tab_anom, tab_subs, tab_fc, tab_cat, tab_month, tab_budget, tab_ask = st.tabs(
-    ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend", "Budgets", "Ask"])
-
-with tab_budget:
-    budgets_ui.render(df, DB_PATH)
-
-with tab_ask:
-    chat_ui.render(df, db.load_budgets(DB_PATH))
-
-with tab_dash:
-    dashboard.render(f, df)
-
-with tab_tx:
-    view = f.assign(date=f["date"].dt.date, confidence=f["confidence"].round(2))
-    st.dataframe(
-        view[["id", "date", "description", "amount", "type", "category", "confidence", "category_source"]],
-        width="stretch", height=450, hide_index=True,
-        column_config={"amount": st.column_config.NumberColumn(format="₹%.2f"),
-                       "confidence": st.column_config.ProgressColumn(min_value=0, max_value=1, format="%.2f")})
-    st.download_button("Download filtered CSV", f.drop(columns=["id"]).to_csv(index=False), "transactions.csv", "text/csv")
-    insights.render_review(f, df, DB_PATH, retrain=not HOSTED)
-
-with tab_anom:
-    insights.render_anomalies(f, df)
-
-with tab_subs:
-    insights.render_subscriptions(df)
-
-with tab_fc:
-    insights.render_forecast(df)
-
-with tab_cat:
-    spend = f[f["type"] == "debit"].groupby("category", as_index=False)["amount"].sum().sort_values("amount")
-    if spend.empty:
-        st.info("No debit transactions in the current filter.")
-    else:
-        st.plotly_chart(px.bar(spend, x="amount", y="category", orientation="h", title="Spending by category"), width="stretch")
-
-with tab_month:
-    m = f[f["type"] == "debit"].assign(month=lambda d: d["date"].dt.to_period("M").astype(str))
-    monthly = m.groupby("month", as_index=False)["amount"].sum()
-    if monthly.empty:
-        st.info("No debit transactions in the current filter.")
-    else:
-        st.plotly_chart(px.bar(monthly, x="month", y="amount", title="Monthly spending"), width="stretch")
+st.markdown(
+    """<style>
+    [data-testid="stSidebar"], [data-testid="stHeader"], footer,
+    [data-testid="stDeployButton"], [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"] { display:none !important; }
+    [data-testid="stAppViewContainer"] { min-height:100vh; }
+    .block-container { max-width:none !important; padding:0 !important; }
+    .st-key-finance_signout { position:fixed !important; top:10px !important; right:14px !important;
+      z-index:999999 !important; width:96px !important; }
+    .st-key-finance_signout button { min-height:32px; border-radius:999px; padding:4px 12px;
+      background:rgba(18,20,22,.9); color:#e8eeee; border:1px solid rgba(255,255,255,.15);
+      font-size:12px; }
+    .st-key-finance_signout button:hover { border-color:#2dd4bf; color:#b9fff4; }
+    iframe[title="st.iframe"] { display:block; width:100% !important; min-height:100vh; border:0; }
+    </style>""",
+    unsafe_allow_html=True,
+)
+components.html(page, height=980, scrolling=True)

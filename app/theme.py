@@ -26,14 +26,20 @@ _FEATURES = [
      '<path d="M21 12a8 8 0 01-11.6 7.1L3 21l1.9-5.4A8 8 0 1121 12z"/>'),
 ]
 
-HERO_PATH = Path(__file__).with_name("hero.html")
-HERO_HTML = HERO_PATH.read_text(encoding="utf-8").replace("\r", "").replace("\n", "")
-_LOGIN_COMPONENT = components.declare_component("finora_login_page", path=str(Path(__file__).with_name("login_component")))
-BRAND_HTML = ('<div class="fa-brand"><span class="fa-logo" aria-hidden="true">F</span><span>Finora</span>'
-              '<svg class="fa-brand-mark" viewBox="0 0 24 24" aria-label="Financial insights" role="img" '
-              'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-              '<path d="M4 17.5 9 12l3.5 3.5L20 7.5"/><path d="M14.5 7.5H20V13"/>'
-              '<circle cx="12" cy="12" r="10.5"/></svg></div>')
+HERO_HTML = (
+    '<div class="fa-hero"><div class="fa-hero-inner">'
+    '<div class="fa-hero-copy">'
+    '<span class="fa-eyebrow"><i></i>Personal Finance Analyzer</span>'
+    '<h1>Know exactly where your money <em>goes</em></h1>'
+    '<p>Upload a bank or UPI statement and get clean categories, unusual-charge alerts, subscriptions, budgets and a next-month forecast, in one private workspace.</p>'
+    '</div>'
+    '<div class="fa-hero-card"><small>What you get</small>'
+    '<div>Auto-categorised spending</div><div>Duplicate &amp; unusual charge alerts</div><div>Subscriptions and recurring bills</div>'
+    '<div>Budgets with early warnings</div><div>Next-month forecast</div><div>Ask questions in plain English</div>'
+    '</div></div></div>'
+)
+
+BRAND_HTML = '<div class="fa-brand"><span class="fa-logo"></span><span>Finance Analyzer</span></div>'
 
 FEATURES_HTML = (
     '<div class="fa-section-head"><small>Features</small><h2>Everything your statement can tell you</h2></div><div class="fa-grid">'
@@ -57,7 +63,7 @@ TRUST_HTML = (
     'On a hosted demo that file lives on the server, so use the sample data unless you trust the host or run the app yourself.</p></div></div>'
 )
 
-FOOTER_HTML = '<div class="fa-footer">Finora &middot; a personal finance workspace &middot; not financial advice</div>'
+FOOTER_HTML = '<div class="fa-footer">Personal Finance Analyzer &middot; a portfolio project &middot; not financial advice</div>'
 
 
 def css() -> str:
@@ -75,17 +81,124 @@ def inject():
         st.markdown(f"<style>{c}</style>", unsafe_allow_html=True)
 
 
+def inject_landing():
+    """Replace the glass canvas with the dark, full-width 3D landing canvas."""
+    st.markdown("""
+    <style>
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+      background: #050506 !important;
+      background-image: none !important;
+      color: #f5f5f7 !important;
+    }
+    header[data-testid="stHeader"] { display: none !important; }
+    [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
+    .block-container, [data-testid="stMainBlockContainer"] {
+      width: 100% !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .st-key-fa_nav {
+      width: min(1440px, 92vw) !important;
+      margin: 0 auto !important;
+      padding: 18px 0 !important;
+    }
+    .st-key-fa_nav .fa-brand { color: #f5f5f7 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+_HERO_COMPONENT = components.declare_component('finora_hero_page', path=str(Path(__file__).with_name('hero_component')))
+_LOGIN_COMPONENT = components.declare_component("finora_login_page", path=str(Path(__file__).with_name("login_component")))
+
+
+def login_page(mode="signin", error=None):
+    """Render the tracked-light sign-in or account creation form."""
+    st.markdown("""
+    <style>
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+      background: #050506 !important; background-image: none !important; color: #f5f3fa !important;
+    }
+    header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], section[data-testid="stSidebar"] { display: none !important; }
+    .block-container, [data-testid="stMainBlockContainer"] {
+      width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important;
+    }
+    .st-key-fa_login { width: 100vw !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    return _LOGIN_COMPONENT(mode=mode, error=error, default=None, key="finora_account")
+
+
 def html(block: str):
     st.markdown(block, unsafe_allow_html=True)
 
 
-def hero(hosted=False):
-    components.html(HERO_HTML.replace("<!--HOSTED_NOTICE-->", '<div class="fa-hosted-note">Hosted demo — use the built-in sample data unless you trust the host.</div>' if hosted else ""), height=900, scrolling=True)
+def hero():
+    """Render the interactive 3D landing component and return auth actions."""
+    return _HERO_COMPONENT(default=None, key="finora_hero")
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# In-app glass theme (signed-in views + sign-in/sign-up). The landing page keeps using style.css above, untouched.
+# ---------------------------------------------------------------------------------------------------------------------
+APP_CSS_PATH = Path(__file__).with_name("style_app.css")
 
 
+def app_css() -> str:
+    """The in-app stylesheet with blank lines removed (same Markdown-safety rule as css()). Empty string if missing."""
+    try:
+        text = APP_CSS_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    return "\n".join(line for line in text.splitlines() if line.strip())
 
-def login_page(error=None):
-    """Render the supplied login page and receive its sign-in/back actions."""
-    return _LOGIN_COMPONENT(error=error, default=None, key="finora_login")
+
+DARK_APP_CSS = """
+:root {
+  --ink:#e6edf7; --muted:#a0aec0; --faint:#8290a8;
+  --blue:#9dadff; --blue-2:#b1bdff; --violet:#c4a7ff; --teal:#5bd6dc;
+  --green:#4bd2a2; --coral:#ff827a; --amber:#f6c66b;
+  --glass:rgba(20,31,49,.84); --glass-strong:rgba(25,38,59,.96); --glass-soft:rgba(19,30,47,.72);
+  --glass-border:rgba(148,163,184,.20); --line:rgba(226,232,240,.11);
+  --shadow:0 14px 38px -18px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.24);
+  --shadow-sm:0 6px 18px -10px rgba(0,0,0,.6);
+}
+[data-testid="stAppViewContainer"] { color:var(--ink); background:linear-gradient(180deg,#0b1220 0%,#0e1726 100%); }
+[data-testid="stAppViewContainer"]::before { opacity:.52; background:radial-gradient(520px 420px at 4% 0%,rgba(79,104,222,.24),transparent 70%),radial-gradient(460px 400px at 98% 8%,rgba(133,101,216,.18),transparent 70%),radial-gradient(520px 440px at 76% 100%,rgba(7,137,155,.12),transparent 70%); }
+[data-testid="stSidebar"] > div:first-child { background:rgba(15,24,39,.94); border-right-color:var(--glass-border); box-shadow:8px 0 40px -24px rgba(0,0,0,.62); }
+[data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="select"] > div, [data-testid="stDateInput"] > div > div, [data-testid="stChatInput"] { color:var(--ink)!important; background:#172338!important; border-color:rgba(148,163,184,.28)!important; }
+input, textarea { color:var(--ink)!important; }
+input::placeholder, textarea::placeholder { color:#8290a8!important; }
+[role="listbox"], [role="option"], [data-baseweb="popover"] > div { color:var(--ink); background:#172338; }
+[data-testid="stFileUploaderDropzone"] { background:#172338; border-color:rgba(157,173,255,.48); }
+[role="tab"]:hover { background:rgba(226,232,240,.08); }
+[data-testid="stAlert"] { background:var(--glass); }
+[data-testid="stDataFrame"], [data-testid="stDataEditor"] { background:var(--glass-strong); }
+button[data-testid="stBaseButton-secondary"], button[data-testid="stBaseButton-secondaryFormSubmit"], [data-testid="stDownloadButton"] button { background:#1b2940; border-color:var(--glass-border); color:var(--ink); }
+button[data-testid="stBaseButton-secondary"]:hover, [data-testid="stDownloadButton"] button:hover { border-color:var(--blue); color:var(--blue); }
+[data-testid="stMetricDelta"] { color:var(--muted)!important; }
+"""
+
+
+def inject_app(mode="Light"):
+    """Inject the selected workspace palette. Styling only; it never touches data."""
+    c = app_css()
+    if c:
+        if mode == "Dark":
+            c += DARK_APP_CSS
+        st.markdown(f"<style>{c}</style>", unsafe_allow_html=True)
+
+
+def user_chip_html(email: str) -> str:
+    """Avatar initial + email for the sidebar. The email is escaped: it is user input rendered as HTML."""
+    import html as _html
+    e = _html.escape(str(email or ""), quote=True)
+    initial = _html.escape((str(email or "?").strip()[:1] or "?").upper())
+    return (f'<div class="fa-user"><span class="fa-avatar">{initial}</span>'
+            f'<span class="fa-user-meta"><small>Signed in</small><b title="{e}">{e}</b></span></div>')
+
+
+def page_header_html(eyebrow: str, title: str, sub: str = "") -> str:
+    import html as _html
+    s = f"<p>{_html.escape(sub)}</p>" if sub else ""
+    return (f'<div class="fa-page-head"><small>{_html.escape(eyebrow)}</small><h1>{_html.escape(title)}</h1>{s}</div>')

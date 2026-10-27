@@ -3,3 +3,9 @@ maxUploadSize = 5          # MB. A year of statements is well under 1 MB; keeps 
 
 [browser]
 gatherUsageStats = false
+
+[theme]
+# The glass UI is designed for a light base. Without this, a visitor whose OS is in dark mode gets dark widgets
+# (tables, inputs) inside light glass cards. The colour is the same blue the landing page already uses.
+base = "light"
+primaryColor = "#2563eb"

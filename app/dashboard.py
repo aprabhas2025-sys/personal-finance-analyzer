@@ -6,24 +6,25 @@ from app import charts
 from ml import api
 
 
-def render(f: pd.DataFrame, full: pd.DataFrame):
-    """f = rows after sidebar filters (charts use this); full = all stored rows (anomaly/recurring context)."""
-    if f.empty:
-        st.info("No transactions match the current filters.")
-        return
-
+def prepare(f: pd.DataFrame, full: pd.DataFrame):
+    """Compute the compact KPI summary once for both the overview and chart tab."""
     sr = charts.overall_savings_rate(f)
     flagged = api.find_anomalies(full.drop(columns=["id"], errors="ignore"))
     flagged = flagged.assign(id=full["id"].to_numpy())
     flagged = flagged[(flagged["is_anomaly"] == 1) & flagged["id"].isin(f["id"])]
     rec = api.find_recurring(full)
+    monthly = charts.monthly_summary(f)
+    avg_spend = float(monthly["spend"].mean()) if not monthly.empty else 0.0
+    return {"savings_rate": sr, "avg_spend": avg_spend, "flagged": flagged, "recurring": rec}
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Savings rate", f"{sr:.0%}" if sr is not None else "n/a", help="(income − spend) / income, filtered range")
-    k2.metric("Avg monthly spend", f"₹{charts.monthly_summary(f)['spend'].mean():,.0f}")
-    k3.metric("Unusual transactions", len(flagged), help="Duplicates and amounts far above the category norm")
-    k4.metric("Recurring payments", len(rec), f"₹{rec['avg_amount'].sum():,.0f}/cycle" if len(rec) else None, delta_color="off")
 
+def render(f: pd.DataFrame, full: pd.DataFrame, summary=None):
+    """Render charts and detail tables; KPI cards are shown above the navigation."""
+    if f.empty:
+        st.info("No transactions match the current filters.")
+        return
+    summary = summary or prepare(f, full)
+    flagged, rec = summary["flagged"], summary["recurring"]
     a, b = st.columns(2)
     with a:
         st.plotly_chart(charts.fig_income_vs_spend(f), width="stretch")

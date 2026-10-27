@@ -1,9 +1,28 @@
-"""Dashboard charts as pure functions of the shared schema (testable without Streamlit). Light theme only."""
+"""Dashboard charts as pure functions of the shared schema (testable without Streamlit). Adaptive light/dark theme: transparent
+figure backgrounds so each chart sits on its glass card (see app/style_app.css)."""
 import pandas as pd
 import plotly.graph_objects as go
 
 TEMPLATE = "plotly_white"
-SPEND, INCOME, RATE = "#E4572E", "#2E8B57", "#1F4E9C"
+SPEND, INCOME, RATE = "#D95E57", "#119A79", "#4F68DE"
+INK, MUTED, GRID = "#17253B", "#58677F", "rgba(23,37,59,0.10)"
+CLEAR = "rgba(0,0,0,0)"
+COLORWAY = ["#4F68DE", "#8565D8", "#07899B", "#C47A13", "#D95E57", "#119A79", "#C24D87", "#65758B"]
+
+
+def configure_theme(mode="Light"):
+    """Set chart colors to match the selected dashboard appearance."""
+    global TEMPLATE, SPEND, INCOME, RATE, INK, MUTED, GRID, COLORWAY
+    if mode == "Dark":
+        TEMPLATE = "plotly_dark"
+        SPEND, INCOME, RATE = "#FF827A", "#4BD2A2", "#9DADFF"
+        INK, MUTED, GRID = "#E6EDF7", "#A0AEC0", "rgba(226,232,240,0.12)"
+        COLORWAY = [RATE, "#C4A7FF", "#5BD6DC", "#F6C66B", SPEND, INCOME, "#FF9CCB", "#9AA9BF"]
+    else:
+        TEMPLATE = "plotly_white"
+        SPEND, INCOME, RATE = "#D95E57", "#119A79", "#4F68DE"
+        INK, MUTED, GRID = "#17253B", "#58677F", "rgba(23,37,59,0.10)"
+        COLORWAY = ["#4F68DE", "#8565D8", "#07899B", "#C47A13", SPEND, INCOME, "#C24D87", "#65758B"]
 
 
 def monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -28,9 +47,16 @@ def overall_savings_rate(df: pd.DataFrame):
 
 
 def _style(fig, title, height=340):
-    fig.update_layout(template=TEMPLATE, title=title, height=height, margin=dict(l=14, r=14, t=50, b=56),
-                      font=dict(family="Inter, system-ui, sans-serif", color="#0b1b3a"),
-                      legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0), paper_bgcolor="white", plot_bgcolor="white")
+    fig.update_layout(
+        template=TEMPLATE, title=dict(text=title, x=0, xanchor="left", font=dict(size=15, color=INK)), height=height,
+        margin=dict(l=18, r=26, t=54, b=56), colorway=COLORWAY,
+        font=dict(family="Inter, system-ui, sans-serif", color=INK, size=12),
+        legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0, font=dict(color=MUTED)),
+        paper_bgcolor=CLEAR, plot_bgcolor=CLEAR,
+        hoverlabel=dict(bgcolor="white", bordercolor="rgba(11,27,58,0.12)", font=dict(family="Inter, system-ui, sans-serif", color=INK)),
+        modebar=dict(bgcolor=CLEAR, color=MUTED, activecolor=INK))
+    fig.update_xaxes(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID, tickfont=dict(color=MUTED))
+    fig.update_yaxes(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID, tickfont=dict(color=MUTED))
     return fig
 
 
@@ -52,7 +78,7 @@ def fig_savings_rate(df):
         return None
     fig = go.Figure(go.Scatter(x=s["month"], y=s["savings_rate"], mode="lines+markers", name="Savings rate",
                                line=dict(color=RATE, width=3)))
-    fig.add_hline(y=0, line_dash="dot", line_color="#999")
+    fig.add_hline(y=0, line_dash="dot", line_color=GRID)
     fig.update_yaxes(tickformat=".0%")
     return _style(fig, "Savings rate by month (income − spend) / income")
 
@@ -91,7 +117,7 @@ def fig_anomaly_scatter(flagged_df: pd.DataFrame):
         return None
     ok, bad = d[d["is_anomaly"] == 0], d[d["is_anomaly"] == 1]
     fig = go.Figure([
-        go.Scatter(x=ok["date"], y=ok["amount"], mode="markers", name="Normal", marker=dict(color="#9AA5B1", size=5, opacity=0.6),
+        go.Scatter(x=ok["date"], y=ok["amount"], mode="markers", name="Normal", marker=dict(color="#9AA8BF", size=5, opacity=0.6),
                    text=ok["description"], hovertemplate="%{text}<br>₹%{y:,.0f}<extra></extra>"),
         go.Scatter(x=bad["date"], y=bad["amount"], mode="markers", name="Unusual",
                    marker=dict(color=SPEND, size=10, line=dict(color="white", width=1)),
@@ -141,7 +167,7 @@ def fig_forecast_by_category(mat: pd.DataFrame, fc: pd.DataFrame):
     last = mat.iloc[-1]
     f = fc.set_index("category")["forecast_amount"]
     cats = f.sort_values().index
-    fig = go.Figure([go.Bar(y=cats, x=[last.get(c, 0.0) for c in cats], orientation="h", name=f"Last month ({mat.index[-1]})", marker_color="#9AA5B1"),
+    fig = go.Figure([go.Bar(y=cats, x=[last.get(c, 0.0) for c in cats], orientation="h", name=f"Last month ({mat.index[-1]})", marker_color="#9AA8BF"),
                      go.Bar(y=cats, x=f[cats].values, orientation="h", name="Forecast", marker_color=RATE)])
     fig.update_layout(barmode="group")
     fig.update_xaxes(tickprefix="₹", separatethousands=True)
@@ -155,7 +181,7 @@ def fig_budget(table: pd.DataFrame, month_label: str = ""):
         return None
     t = table.sort_values("pct_used")
     colors = [SPEND if s in ("over", "will exceed") else "#E0A100" if s == "near limit" else INCOME for s in t["status"]]
-    fig = go.Figure([go.Bar(y=t["category"], x=t["limit"], orientation="h", name="Limit", marker_color="#D5DAE0"),
+    fig = go.Figure([go.Bar(y=t["category"], x=t["limit"], orientation="h", name="Limit", marker_color="#D3DCEB"),
                      go.Bar(y=t["category"], x=t["spent"], orientation="h", name=f"Spent {month_label}".strip(), marker_color=colors)])
     fig.update_layout(barmode="overlay")
     fig.update_xaxes(tickprefix="₹", separatethousands=True)

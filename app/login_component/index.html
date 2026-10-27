@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Finora — Sign in</title>
+<title>Finora — Account</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,8 +12,8 @@
 <button type="button" id="back" class="back">← Back to Finora</button>
 <main class="stage">
   <header class="hero">
-    <h1>Welcome back</h1>
-    <p class="sub">Sign in to return to your financial workspace.</p>
+    <h1 id="title">Welcome back</h1>
+    <p class="sub" id="subtitle">Sign in to return to your financial workspace.</p>
     <p class="by">Finora<sup>®</sup></p>
   </header>
 
@@ -38,10 +38,17 @@
       <p class="err" id="pw-err" role="alert"></p>
     </div>
 
+    <div class="field" id="confirm-field" hidden>
+      <label for="confirm">Confirm password</label>
+      <div class="pw-wrap"><input id="confirm" name="confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password" maxlength="128" aria-describedby="confirm-err"></div>
+      <p class="err" id="confirm-err" role="alert"></p>
+    </div>
     <p class="err server-err" id="server-err" role="alert" aria-live="polite"></p>
     <button type="submit" id="submit" class="btn"><span class="lbl">Sign in</span><span class="spin" aria-hidden="true"></span></button>
   </form>
+<p class="signup-prompt" style="margin:-12px 0 0;color:#92909d;font-size:13px;text-align:center"><span id="switch-copy">First time here?</span> <a id="signup" href="#" style="color:#c2adff;font-weight:600;text-decoration:none;margin-left:4px">Create an account</a></p>
 </main>
 <script src="script.js"></script>
 </body>
 </html>
+

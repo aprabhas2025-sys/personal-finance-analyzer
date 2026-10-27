@@ -1,0 +1,8 @@
+import { Bell, CalendarDays, ChevronDown, Menu, Moon, Search, Sun, Upload } from 'lucide-react'
+import type { Period } from '../types'
+type Props={onMenu:()=>void;query:string;onQuery:(s:string)=>void;period:Period;onPeriod:(p:Period)=>void;onUpload:()=>void;theme:'dark'|'light';onTheme:()=>void}
+export default function Topbar({onMenu,query,onQuery,period,onPeriod,onUpload,theme,onTheme}:Props){return <header className="topbar">
+ <div className="topbar-start"><button className="icon-button mobile-menu" aria-label="Open navigation" onClick={onMenu}><Menu size={19}/></button><span className="topbar-label">Personal finance</span><label className="date-chip"><CalendarDays size={14}/><select value={period} onChange={e=>onPeriod(e.target.value as Period)} aria-label="Date range"><option>All data</option><option>30 days</option><option>3 months</option><option>6 months</option></select><ChevronDown size={13}/></label></div>
+ <div className="topbar-search"><Search size={16}/><input aria-label="Search transactions" value={query} onChange={e=>onQuery(e.target.value)} placeholder="Search transactions, categories..."/><kbd>⌘ K</kbd></div>
+ <div className="topbar-end"><button className="upload-button" onClick={onUpload}><Upload size={14}/><span>Import CSV</span></button><button className="icon-button theme-button" onClick={onTheme} aria-label={`Switch to ${theme==='dark'?'light':'dark'} mode`}>{theme==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><button className="icon-button notification-button" aria-label="Notifications"><Bell size={17}/><i/></button><button className="user-avatar" aria-label="Finance Analyzer profile">FA</button></div>
+ </header>}

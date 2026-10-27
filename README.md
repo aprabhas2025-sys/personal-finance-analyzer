@@ -89,7 +89,7 @@ The Ask tab can answer "Am I over budget?".
 
 ## Ask tab (chat assistant)
 Ask things like *"How much did I spend on Groceries last month?"*, *"What are my subscriptions?"* or *"How is my data stored?"*.
-- **Free, no AI by default.** Without `GEMINI_API_KEY`, or with the checkbox off, answers come from keyword rules over the same functions.
+- **AI is available when configured.** Without `GEMINI_API_KEY`, or with the AI checkbox off, answers come from keyword rules over the same functions.
 - **AI mode (free tier):** Gemini (default `gemini-3.5-flash-lite`, override with `GEMINI_MODEL`; get a free key at Google AI Studio) answers by calling
   read-only tools that return **aggregates only**; raw transaction rows are never sent. Merchant names in tool results are sent to Google, and the tab says so.
   **Free-tier Gemini content may be used by Google to improve its products**, so use AI mode with sample data, not a real statement. Tool results are treated as data, not instructions.
@@ -97,6 +97,9 @@ Ask things like *"How much did I spend on Groceries last month?"*, *"What are my
 - Hosted: add `GEMINI_API_KEY` as a Render environment variable (secret). Each session is capped at 30 AI messages.
 - Not evaluated yet: there is no accuracy number for the chat answers, so don't quote one.
 
+### Configure Gemini locally
+
+Copy `.env.example` to `.env`, replace the placeholder with your Google AI Studio key, then rerun the app. The app also accepts `GEMINI_API_KEY` or `GOOGLE_API_KEY` from the process environment, or a key in `.streamlit/secrets.toml`. The local `.env` file is ignored by Git; never commit or paste your API key into chat.
 ## Metrics
 Every row is synthetic unless it says REAL. Reports: `metrics/`.
 | Metric | Value |

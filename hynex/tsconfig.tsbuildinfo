@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/aichat.tsx","./src/components/balancecard.tsx","./src/components/healthmetrics.tsx","./src/components/sidebar.tsx","./src/components/smarthealthfinance.tsx","./src/components/spendingtracker.tsx","./src/components/statcard.tsx","./src/components/topbar.tsx","./src/components/transactionstable.tsx"],"version":"5.7.3"}

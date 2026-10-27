@@ -31,6 +31,8 @@ def test_figures_build_and_are_light():
             charts.fig_forecast_total(mat, float(fc.forecast_amount.sum()), str(mat.index[-1] + 1)),
             charts.fig_forecast_by_category(mat, fc)]
     for fig in figs:
-        assert fig is not None and len(fig.data) >= 1 and fig.layout.paper_bgcolor == "white"
+        assert fig is not None and len(fig.data) >= 1
+        assert fig.layout.paper_bgcolor == charts.CLEAR and fig.layout.plot_bgcolor == charts.CLEAR   # transparent: sits on a glass card
+        assert fig.layout.font.color == charts.INK                                                    # still the light theme: dark text
     assert len(figs[0].data[1].x) == 12                                        # 12 flagged points highlighted
     assert list(figs[2].data[1].x)[-1] == str(mat.index[-1] + 1)
