@@ -8,12 +8,7 @@ _RS = st.column_config.NumberColumn(format="₹%.0f")
 _ICON = {"over": "🔴 over", "will exceed": "🟠 will exceed", "near limit": "🟡 near limit", "ok": "🟢 ok"}
 
 
-def _forecast(full: pd.DataFrame):
-    from ml import api
-    return api.forecast(full.drop(columns=["id"], errors="ignore"))
-
-
-def render(full: pd.DataFrame, db_path=None):
+def render(full: pd.DataFrame, db_path=None, forecast_result: pd.DataFrame = None):
     cats = sorted(full.loc[full["type"] == "debit", "category"].unique())
     if not cats:
         st.info("No debit transactions to budget against.")
@@ -40,10 +35,16 @@ def render(full: pd.DataFrame, db_path=None):
     if not saved:
         st.info("No budgets saved yet. Click *Suggest from my average*, adjust, then *Save budgets*.")
         return
-    try:
-        fc = _forecast(full)
-    except Exception:
-        fc = None
+
+    # Use pre-computed forecast if available
+    fc = forecast_result
+    if fc is None:
+        try:
+            from ml import api
+            fc = api.forecast(full.drop(columns=["id"], errors="ignore"))
+        except Exception:
+            fc = None
+
     table, meta = B.status_table(full, saved, fc)
     bad = table[table["status"].isin(["over", "will exceed"])]
     c1, c2, c3 = st.columns(3)

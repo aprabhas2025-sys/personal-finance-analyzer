@@ -1,5 +1,9 @@
 [server]
 maxUploadSize = 5          # MB. A year of statements is well under 1 MB; keeps a free 512 MB host safe.
+runOnSave = false
 
 [browser]
 gatherUsageStats = false
+
+[runner]
+fastReruns = true

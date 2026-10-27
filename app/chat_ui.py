@@ -9,7 +9,7 @@ EXAMPLES = ["How much did I spend on Groceries last month?", "What are my subscr
             "What will I spend next month?", "What is my savings rate?", "Am I over budget?", "How is my data stored?"]
 
 
-def render(full, budgets=None):
+def render(full, budgets=None, precomputed_anomalies=None, precomputed_recurring=None, precomputed_forecast=None):
     ai_available = chatbot.make_client() is not None
     use_ai = False
     if ai_available:
@@ -39,7 +39,11 @@ def render(full, budgets=None):
         with st.chat_message("user"):
             st.markdown(q)
         with st.chat_message("assistant"), st.spinner("Thinking…"):
-            out = chatbot.answer(q, [{"role": m["role"], "content": m["content"]} for m in hist], ChatTools(full, budgets=budgets),
+            tools = ChatTools(full, budgets=budgets,
+                              precomputed_anomalies=precomputed_anomalies,
+                              precomputed_recurring=precomputed_recurring,
+                              precomputed_forecast=precomputed_forecast)
+            out = chatbot.answer(q, [{"role": m["role"], "content": m["content"]} for m in hist], tools,
                                  use_ai=use_ai and not capped)
         meta = ("AI" if out["source"] == "ai" else "Rules") + (f" · looked up: {', '.join(out['tool_calls'])}" if out["tool_calls"] else "")
         if capped:

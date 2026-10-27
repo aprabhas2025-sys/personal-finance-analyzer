@@ -46,12 +46,19 @@ TOOL_SCHEMAS = [
 
 
 class ChatTools:
-    def __init__(self, df: pd.DataFrame, api=None, budgets: dict | None = None):
+    def __init__(self, df: pd.DataFrame, api=None, budgets: dict | None = None,
+                 precomputed_anomalies: pd.DataFrame = None,
+                 precomputed_recurring: pd.DataFrame = None,
+                 precomputed_forecast: pd.DataFrame = None):
         self.budgets = dict(budgets or {})
         self.df = df.copy()
         self.df["date"] = pd.to_datetime(self.df["date"])
         self._api = api
         self.categories = sorted(self.df["category"].dropna().unique())
+        # Store pre-computed results to avoid redundant computation
+        self._precomputed_anomalies = precomputed_anomalies
+        self._precomputed_recurring = precomputed_recurring
+        self._precomputed_forecast = precomputed_forecast
 
     @property
     def api(self):
@@ -129,7 +136,11 @@ class ChatTools:
             for r in d.itertuples()]}
 
     def _t_subscriptions(self):
-        rec = self.api.find_recurring(self.df.drop(columns=["id"], errors="ignore"))
+        # Use pre-computed recurring result if available
+        if self._precomputed_recurring is not None:
+            rec = self._precomputed_recurring
+        else:
+            rec = self.api.find_recurring(self.df.drop(columns=["id"], errors="ignore"))
         if rec is None or rec.empty:
             return {"subscriptions": [], "note": "no recurring payments found (needs 3+ regular payments to one merchant)"}
         rec = rec.assign(monthly_cost=(rec["avg_amount"] * 30.44 / rec["frequency_days"]).round(2)).sort_values("monthly_cost", ascending=False)
@@ -138,7 +149,11 @@ class ChatTools:
              "every_days": int(r.frequency_days), "next_due": str(pd.Timestamp(r.next_due).date())} for r in rec.head(MAX_ROWS).itertuples()]}
 
     def _t_anomalies(self):
-        an = self.api.find_anomalies(self.df.drop(columns=["id"], errors="ignore"))
+        # Use pre-computed anomaly result if available
+        if self._precomputed_anomalies is not None:
+            an = self._precomputed_anomalies
+        else:
+            an = self.api.find_anomalies(self.df.drop(columns=["id"], errors="ignore"))
         fl = an[an["is_anomaly"] == 1].sort_values("amount", ascending=False)
         return {"flagged": int(len(fl)), "total_amount": round(float(fl["amount"].sum()), 2),
                 "note": "a prompt to check, not proof of a problem; only duplicates and unusually large amounts are detected",
@@ -149,17 +164,25 @@ class ChatTools:
         if not self.budgets:
             return {"budgets": [], "note": "no budgets are set; the user can set them in the Budgets tab"}
         from app import budgets as B
-        try:
-            fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))
-        except Exception:
-            fc = None
+        # Use pre-computed forecast if available
+        if self._precomputed_forecast is not None:
+            fc = self._precomputed_forecast
+        else:
+            try:
+                fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))
+            except Exception:
+                fc = None
         t, meta = B.status_table(self.df, self.budgets, fc)
         return {"month": meta["month"], "month_is_partial": meta["partial"], "budgets": [
             {"category": r.category, "limit": r.limit, "spent": r.spent, "percent_used": round(r.pct_used * 100, 1),
              "forecast_next_month": r.forecast, "status": r.status} for r in t.itertuples()]}
 
     def _t_forecast(self):
-        fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))
+        # Use pre-computed forecast if available
+        if self._precomputed_forecast is not None:
+            fc = self._precomputed_forecast
+        else:
+            fc = self.api.forecast(self.df.drop(columns=["id"], errors="ignore"))
         if fc.empty:
             return {"error": "not enough spending history to forecast"}
         return {"forecast_total_next_month": round(float(fc["forecast_amount"].sum()), 2),

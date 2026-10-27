@@ -3,20 +3,34 @@ import pandas as pd
 import streamlit as st
 
 from app import charts
-from ml import api
 
 
-def render(f: pd.DataFrame, full: pd.DataFrame):
-    """f = rows after sidebar filters (charts use this); full = all stored rows (anomaly/recurring context)."""
+def render(f: pd.DataFrame, full: pd.DataFrame, anomaly_result: pd.DataFrame = None, recurring_result: pd.DataFrame = None):
+    """f = rows after sidebar filters (charts use this); full = all stored rows (anomaly/recurring context).
+
+    anomaly_result and recurring_result are pre-computed in app.py to avoid redundant computation.
+    """
     if f.empty:
         st.info("No transactions match the current filters.")
         return
 
     sr = charts.overall_savings_rate(f)
-    flagged = api.find_anomalies(full.drop(columns=["id"], errors="ignore"))
-    flagged = flagged.assign(id=full["id"].to_numpy())
-    flagged = flagged[(flagged["is_anomaly"] == 1) & flagged["id"].isin(f["id"])]
-    rec = api.find_recurring(full)
+
+    # Use pre-computed results instead of re-running expensive ML
+    if anomaly_result is not None:
+        flagged = anomaly_result.assign(id=full["id"].to_numpy())
+        flagged = flagged[(flagged["is_anomaly"] == 1) & flagged["id"].isin(f["id"])]
+    else:
+        from ml import api
+        flagged_all = api.find_anomalies(full.drop(columns=["id"], errors="ignore"))
+        flagged = flagged_all.assign(id=full["id"].to_numpy())
+        flagged = flagged[(flagged["is_anomaly"] == 1) & flagged["id"].isin(f["id"])]
+
+    if recurring_result is not None:
+        rec = recurring_result
+    else:
+        from ml import api
+        rec = api.find_recurring(full)
 
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Savings rate", f"{sr:.0%}" if sr is not None else "n/a", help="(income − spend) / income, filtered range")

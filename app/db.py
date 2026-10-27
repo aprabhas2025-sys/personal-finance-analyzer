@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS budgets (
     monthly_limit REAL NOT NULL CHECK (monthly_limit > 0)
 )"""
 
+# Track which DB files have been initialized so we skip CREATE TABLE IF NOT EXISTS on every call.
+_initialized: set[str] = set()
+
 
 def session_path(session_id: str) -> Path:
     """Per-visitor DB file, so two sessions never read or overwrite each other's statement.
@@ -74,8 +77,12 @@ def _conn(path=None):
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     try:
-        conn.execute(SCHEMA)
-        conn.execute(BUDGET_SCHEMA)
+        # Only run schema creation once per DB file per process
+        key = str(path)
+        if key not in _initialized:
+            conn.execute(SCHEMA)
+            conn.execute(BUDGET_SCHEMA)
+            _initialized.add(key)
         yield conn
         conn.commit()
     except Exception:

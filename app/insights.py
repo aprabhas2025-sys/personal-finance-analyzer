@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app import charts, config, review
-from ml import api, forecast as F
+from ml import forecast as F
 from ml.schema import CATEGORIES
 
 _RS = st.column_config.NumberColumn(format="₹%.2f")
@@ -14,8 +14,14 @@ def _backtest(df: pd.DataFrame):
     return F.backtest(df)
 
 
-def render_anomalies(f: pd.DataFrame, full: pd.DataFrame):
-    an = api.find_anomalies(full.drop(columns=["id"], errors="ignore")).assign(id=full["id"].to_numpy())
+def render_anomalies(f: pd.DataFrame, full: pd.DataFrame, anomaly_result: pd.DataFrame = None):
+    # Use pre-computed anomaly result if available
+    if anomaly_result is not None:
+        an = anomaly_result.assign(id=full["id"].to_numpy())
+    else:
+        from ml import api
+        an = api.find_anomalies(full.drop(columns=["id"], errors="ignore")).assign(id=full["id"].to_numpy())
+
     an = an[an["id"].isin(f["id"])]
     flagged = an[an["is_anomaly"] == 1]
     c1, c2 = st.columns(2)
@@ -33,8 +39,14 @@ def render_anomalies(f: pd.DataFrame, full: pd.DataFrame):
     st.dataframe(v, width="stretch", hide_index=True, column_config={"amount": _RS})
 
 
-def render_subscriptions(full: pd.DataFrame):
-    rec = charts.subscription_summary(api.find_recurring(full), full["date"].max())
+def render_subscriptions(full: pd.DataFrame, recurring_result: pd.DataFrame = None):
+    # Use pre-computed recurring result if available
+    if recurring_result is not None:
+        rec = charts.subscription_summary(recurring_result, full["date"].max())
+    else:
+        from ml import api
+        rec = charts.subscription_summary(api.find_recurring(full), full["date"].max())
+
     if rec.empty:
         st.info("No recurring payments found. At least 3 regular payments to the same merchant are needed.")
         return
@@ -52,9 +64,16 @@ def render_subscriptions(full: pd.DataFrame):
     st.caption("Dates are relative to the end of your statement, not today. Variable bills (electricity) show their average.")
 
 
-def render_forecast(full: pd.DataFrame):
+def render_forecast(full: pd.DataFrame, forecast_result: pd.DataFrame = None):
     mat = F.monthly_matrix(full)
-    fc = api.forecast(full)
+
+    # Use pre-computed forecast if available
+    if forecast_result is not None:
+        fc = forecast_result
+    else:
+        from ml import api
+        fc = api.forecast(full)
+
     if mat.empty or fc.empty:
         st.info("Not enough spending history to forecast.")
         return

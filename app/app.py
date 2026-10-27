@@ -34,6 +34,33 @@ def ingest(raw: pd.DataFrame):
     df = api.categorize(df)                    # Person A's model
     db.replace_all(df, DB_PATH)
     st.session_state["report"] = report
+    # Invalidate cached computations when new data is ingested
+    _cached_anomalies.clear()
+    _cached_recurring.clear()
+    _cached_forecast.clear()
+
+
+# ------------ Cached expensive ML computations (computed once per data snapshot) ------------
+@st.cache_data(show_spinner=False, max_entries=4, ttl=1800)
+def _cached_anomalies(_df_hash: str, df: pd.DataFrame) -> pd.DataFrame:
+    return api.find_anomalies(df.drop(columns=["id"], errors="ignore"))
+
+@st.cache_data(show_spinner=False, max_entries=4, ttl=1800)
+def _cached_recurring(_df_hash: str, df: pd.DataFrame) -> pd.DataFrame:
+    return api.find_recurring(df)
+
+@st.cache_data(show_spinner=False, max_entries=4, ttl=1800)
+def _cached_forecast(_df_hash: str, df: pd.DataFrame) -> pd.DataFrame:
+    return api.forecast(df.drop(columns=["id"], errors="ignore"))
+
+
+def _df_signature(df: pd.DataFrame) -> str:
+    """Cheap hash of the dataframe shape + a sample of values to use as cache key."""
+    n = len(df)
+    if n == 0:
+        return "empty"
+    sample_vals = f"{n}_{df['amount'].sum():.2f}_{df['date'].iloc[0]}_{df['date'].iloc[-1]}"
+    return hashlib.md5(sample_vals.encode()).hexdigest()
 
 
 # ---------------- sidebar: load data ----------------
@@ -78,6 +105,12 @@ if df.empty:
     st.info("Upload a CSV or click **Use sample data** in the sidebar to begin.")
     st.stop()
 
+# Pre-compute expensive results ONCE and share across all tabs
+_sig = _df_signature(df)
+anomaly_result = _cached_anomalies(_sig, df)
+recurring_result = _cached_recurring(_sig, df)
+forecast_result = _cached_forecast(_sig, df)
+
 # ---------------- sidebar: filters ----------------
 with st.sidebar:
     st.header("2. Filters")
@@ -113,13 +146,16 @@ tab_dash, tab_tx, tab_anom, tab_subs, tab_fc, tab_cat, tab_month, tab_budget, ta
     ["Dashboard", "Transactions", "Anomalies", "Subscriptions", "Forecast", "By category", "Monthly spend", "Budgets", "Ask"])
 
 with tab_budget:
-    budgets_ui.render(df, DB_PATH)
+    budgets_ui.render(df, DB_PATH, forecast_result=forecast_result)
 
 with tab_ask:
-    chat_ui.render(df, db.load_budgets(DB_PATH))
+    chat_ui.render(df, db.load_budgets(DB_PATH),
+                   precomputed_anomalies=anomaly_result,
+                   precomputed_recurring=recurring_result,
+                   precomputed_forecast=forecast_result)
 
 with tab_dash:
-    dashboard.render(f, df)
+    dashboard.render(f, df, anomaly_result=anomaly_result, recurring_result=recurring_result)
 
 with tab_tx:
     view = f.assign(date=f["date"].dt.date, confidence=f["confidence"].round(2))
@@ -132,13 +168,13 @@ with tab_tx:
     insights.render_review(f, df, DB_PATH, retrain=not HOSTED)
 
 with tab_anom:
-    insights.render_anomalies(f, df)
+    insights.render_anomalies(f, df, anomaly_result=anomaly_result)
 
 with tab_subs:
-    insights.render_subscriptions(df)
+    insights.render_subscriptions(df, recurring_result=recurring_result)
 
 with tab_fc:
-    insights.render_forecast(df)
+    insights.render_forecast(df, forecast_result=forecast_result)
 
 with tab_cat:
     spend = f[f["type"] == "debit"].groupby("category", as_index=False)["amount"].sum().sort_values("amount")
