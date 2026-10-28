@@ -38,7 +38,7 @@ page = (
     "<style>html,body,#root{margin:0;width:100%;min-height:100%;}"
     "body{min-height:100vh;overflow:auto;}"
     ".app-shell{min-height:100vh;margin:0;border:0;border-radius:0;overflow:hidden;}"
-    ".topbar{padding-right:122px!important;}"
+    ".topbar{padding-right:150px!important;}@media(max-width:640px){.topbar{padding-right:104px!important;}}"
     "</style></head><body>"
     f"<div id='root' data-user-id='{user_id}' data-user-email='{user_email}'></div>"
     f"<script type='module'>{js}</script></body></html>"
@@ -51,13 +51,18 @@ st.markdown(
     [data-testid="stStatusWidget"] { display:none !important; }
     [data-testid="stAppViewContainer"] { min-height:100vh; }
     .block-container { max-width:none !important; padding:0 !important; }
-    .st-key-finance_signout { position:fixed !important; top:10px !important; right:14px !important;
-      z-index:999999 !important; width:96px !important; }
-    .st-key-finance_signout button { min-height:32px; border-radius:999px; padding:4px 12px;
-      background:rgba(18,20,22,.9); color:#e8eeee; border:1px solid rgba(255,255,255,.15);
-      font-size:12px; }
-    .st-key-finance_signout button:hover { border-color:#2dd4bf; color:#b9fff4; }
-    iframe[title="st.iframe"] { display:block; width:100% !important; min-height:100vh; border:0; }
+    .st-key-finance_signout { position:fixed !important; top:14px !important; right:20px !important;
+      z-index:999999 !important; width:110px !important; }
+    .st-key-finance_signout button { min-height:44px; border-radius:999px; padding:4px 12px;
+      background:#ffffff; color:#151a23; border:1px solid #d5d9e0;
+      font-size:14px; font-weight:600; }
+    .st-key-finance_signout button p { font-size:14px; font-weight:600; }
+    @media (max-width:640px) { .st-key-finance_signout { width:84px !important; right:12px !important; } }
+    .st-key-finance_signout button:hover { border-color:#14b8a6; color:#0f766e; }
+    /* The dashboard fills the window and scrolls inside itself (fixed sidebar, one scrolling content area). */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] { overflow:hidden !important; }
+    iframe[title="st.iframe"] { position:fixed !important; inset:0 !important; display:block;
+      width:100vw !important; height:100vh !important; height:100dvh !important; border:0; z-index:1; }
     </style>""",
     unsafe_allow_html=True,
 )

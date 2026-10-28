@@ -3,9 +3,97 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Res
 import { categorySummary, monthlySummary, money, shortMonth } from '../lib/finance'
 import type { Transaction } from '../types'
 
-const colors=['#2dd4bf','#84cc16','#facc15','#38bdf8','#a78bfa','#fb7185','#fb923c','#64748b']
-const tipStyle={background:'#171a1d',border:'1px solid #292d31',borderRadius:10,color:'#f3f4f6',fontSize:11}
-function FinanceTooltip({active,payload,label}:{active?:boolean;payload?:{name?:string;value?:number;color?:string}[];label?:string}){if(!active||!payload?.length)return null;return <div className="finance-tooltip"><span>{label}</span>{payload.map((p,i)=><div key={`${p.name}-${i}`} style={{color:p.color||'#b9c2c2'}}><i/>{p.name}<b>{money(p.value||0)}</b></div>)}</div>}
-export function CashFlowChart({transactions}:{transactions:Transaction[]}){const data=useMemo(()=>monthlySummary(transactions).map(x=>({...x,month:shortMonth(x.month)})),[transactions]);return <section className="panel finance-chart-card"><div className="panel-heading"><div><div className="eyebrow">Cash flow</div><div className="chart-title">Income vs. spending</div></div><span className="chart-period">Monthly</span></div><div className="chart-area"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{top:12,right:6,bottom:0,left:-17}}><CartesianGrid vertical={false} stroke="#292d30" strokeDasharray="3 5"/><XAxis dataKey="month" tickLine={false} axisLine={false} tick={{fill:'#7d878c',fontSize:9}}/><YAxis tickLine={false} axisLine={false} tick={{fill:'#687176',fontSize:8}} tickFormatter={v=>`₹${Math.round(v/1000)}k`}/><Tooltip content={<FinanceTooltip/>} cursor={{fill:'rgba(255,255,255,.025)'}}/><Bar dataKey="income" name="Income" fill="#84cc16" radius={[4,4,0,0]} maxBarSize={17} animationDuration={700}/><Bar dataKey="spend" name="Spending" fill="#2dd4bf" radius={[4,4,0,0]} maxBarSize={17} animationDuration={850}/></BarChart></ResponsiveContainer></div><div className="chart-legend"><span><i className="legend-lime"/> Income</span><span><i className="legend-mint"/> Spending</span></div></section>}
-export function CategoryChart({transactions}:{transactions:Transaction[]}){const data=useMemo(()=>categorySummary(transactions).slice(0,7),[transactions]);const total=data.reduce((sum,x)=>sum+x.value,0);return <section className="panel finance-chart-card category-chart-card"><div className="panel-heading"><div><div className="eyebrow">Spending breakdown</div><div className="chart-title">By category</div></div><span className="chart-period">Top categories</span></div><div className="category-chart-body"><div className="category-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius="68%" outerRadius="92%" paddingAngle={3} stroke="none" animationDuration={850}>{data.map((x,i)=><Cell key={x.name} fill={colors[i%colors.length]}/>)}</Pie><Tooltip formatter={(v)=>[money(Number(v)),'Spent']} contentStyle={tipStyle}/></PieChart></ResponsiveContainer><div className="donut-center"><span>Spent</span><b>{money(total)}</b></div></div><div className="category-legend">{data.map((item,i)=><div key={item.name}><i style={{background:colors[i%colors.length]}}/><span>{item.name}</span><b>{money(item.value)}</b></div>)}</div></div></section>}
-export function TrendChart({transactions,forecast=false}:{transactions:Transaction[];forecast?:boolean}){const data=useMemo(()=>{const months=monthlySummary(transactions);const avg=months.slice(-3).reduce((a,b)=>a+b.spend,0)/Math.max(1,months.slice(-3).length);return months.slice(-12).map((x,i,a)=>({...x,month:shortMonth(x.month),projection:forecast&&i===a.length-1?avg:undefined}))},[transactions,forecast]);return <section className="panel finance-chart-card trend-card"><div className="panel-heading"><div><div className="eyebrow">{forecast?'Forward view':'Spending rhythm'}</div><div className="chart-title">{forecast?'Monthly spend forecast':'Monthly spend trend'}</div></div><span className="chart-period">Last 12 months</span></div><div className="chart-area"><ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{top:12,right:7,bottom:0,left:-20}}><defs><linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2dd4bf" stopOpacity={.22}/><stop offset="100%" stopColor="#2dd4bf" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="#292d30" strokeDasharray="3 5"/><XAxis dataKey="month" tickLine={false} axisLine={false} tick={{fill:'#737d82',fontSize:8}}/><YAxis tickLine={false} axisLine={false} tick={{fill:'#687176',fontSize:8}} tickFormatter={v=>`₹${Math.round(v/1000)}k`}/><Tooltip content={<FinanceTooltip/>}/><Area type="monotone" dataKey="spend" name="Spending" stroke="#2dd4bf" strokeWidth={2.2} fill="url(#spendFill)" dot={false} activeDot={{r:4,fill:'#2dd4bf',stroke:'#101414',strokeWidth:3}} animationDuration={850}/>{forecast&&<Area type="monotone" dataKey="projection" name="Forecast" stroke="#facc15" strokeWidth={2} strokeDasharray="5 4" fill="none" dot={false} animationDuration={900}/>}</AreaChart></ResponsiveContainer></div></section>}
+export const PALETTE = ['#14b8a6', '#6366f1', '#f59e0b', '#ec4899', '#38bdf8', '#84cc16', '#f97316', '#94a3b8']
+const axis = { fill: 'var(--muted)', fontSize: 13 }
+const kfmt = (v: number) => (v >= 100000 ? `₹${(v / 100000).toFixed(v % 100000 ? 1 : 0)}L` : `₹${Math.round(v / 1000)}k`)
+
+function FinanceTooltip({ active, payload, label }: { active?: boolean; payload?: { name?: string; value?: number; color?: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="finance-tooltip">
+      <span>{label}</span>
+      {payload.map((p, i) => <div key={`${p.name}-${i}`} style={{ color: p.color }}><span>{p.name}</span><b>{money(p.value || 0)}</b></div>)}
+    </div>
+  )
+}
+
+export function CashFlowChart({ transactions }: { transactions: Transaction[] }) {
+  const data = useMemo(() => monthlySummary(transactions).slice(-12).map(x => ({ ...x, month: shortMonth(x.month) })), [transactions])
+  return (
+    <section className="card">
+      <div className="card-head">
+        <div><h2 className="card-title">Income vs. spending</h2><p className="card-sub">Month by month, last 12 months</p></div>
+      </div>
+      <div className="chart-area">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barGap={4}>
+            <CartesianGrid vertical={false} stroke="var(--grid)" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axis} tickMargin={10} interval="preserveStartEnd" />
+            <YAxis width={58} tickLine={false} axisLine={false} tick={axis} tickFormatter={kfmt} />
+            <Tooltip content={<FinanceTooltip />} cursor={{ fill: 'var(--surface-2)' }} />
+            <Bar dataKey="income" name="Income" fill="var(--income)" radius={[5, 5, 0, 0]} maxBarSize={22} />
+            <Bar dataKey="spend" name="Spending" fill="var(--spend)" radius={[5, 5, 0, 0]} maxBarSize={22} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="chart-legend"><span><i style={{ background: 'var(--income)' }} />Income</span><span><i style={{ background: 'var(--spend)' }} />Spending</span></div>
+    </section>
+  )
+}
+
+export function CategoryChart({ transactions, rows = 5 }: { transactions: Transaction[]; rows?: number }) {
+  const all = useMemo(() => categorySummary(transactions), [transactions])
+  const total = all.reduce((s, x) => s + x.value, 0)
+  const top = all.slice(0, rows)
+  const rest = all.slice(rows).reduce((s, x) => s + x.value, 0)
+  const data = rest > 0 ? [...top, { name: 'Everything else', value: rest }] : top
+  return (
+    <section className="card">
+      <div className="card-head"><div><h2 className="card-title">Where your money goes</h2><p className="card-sub">Share of total spending</p></div></div>
+      <div className="donut-wrap">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius="68%" outerRadius="100%" paddingAngle={2} stroke="none">
+              {data.map((x, i) => <Cell key={x.name} fill={PALETTE[i % PALETTE.length]} />)}
+            </Pie>
+            <Tooltip formatter={v => money(Number(v))} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="donut-center"><span>Total spent</span><b>{money(total)}</b></div>
+      </div>
+      <div className="legend-list">
+        {data.map((x, i) => (
+          <div className="legend-row" key={x.name}>
+            <i style={{ background: PALETTE[i % PALETTE.length] }} /><span>{x.name}</span><b>{money(x.value)}</b><small>{total ? `${Math.round((x.value / total) * 100)}%` : ''}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function TrendChart({ transactions, forecast = false }: { transactions: Transaction[]; forecast?: boolean }) {
+  const data = useMemo(() => {
+    const months = monthlySummary(transactions)
+    const avg = months.slice(-3).reduce((a, b) => a + b.spend, 0) / Math.max(1, months.slice(-3).length)
+    return months.slice(-12).map((x, i, a) => ({ ...x, month: shortMonth(x.month), projection: forecast && i === a.length - 1 ? avg : undefined }))
+  }, [transactions, forecast])
+  return (
+    <section className="card">
+      <div className="card-head"><div><h2 className="card-title">{forecast ? 'Monthly spending and estimate' : 'Monthly spending trend'}</h2><p className="card-sub">Last 12 months</p></div></div>
+      <div className="chart-area">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <defs><linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f97316" stopOpacity={.25} /><stop offset="100%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
+            <CartesianGrid vertical={false} stroke="var(--grid)" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axis} tickMargin={10} interval="preserveStartEnd" />
+            <YAxis width={58} tickLine={false} axisLine={false} tick={axis} tickFormatter={kfmt} />
+            <Tooltip content={<FinanceTooltip />} />
+            <Area type="monotone" dataKey="spend" name="Spending" stroke="#f97316" strokeWidth={2.5} fill="url(#spendFill)" dot={false} activeDot={{ r: 5 }} />
+            {forecast && <Area type="monotone" dataKey="projection" name="Estimate" stroke="#6366f1" strokeWidth={2.5} strokeDasharray="6 5" fill="none" dot={{ r: 5, fill: '#6366f1' }} />}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  )
+}

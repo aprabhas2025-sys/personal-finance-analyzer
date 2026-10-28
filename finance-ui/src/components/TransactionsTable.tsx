@@ -1,19 +1,71 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownToLine, ArrowUpRight, ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpDown, Info, Search } from 'lucide-react'
 import { CATEGORIES, type Category, type Transaction } from '../types'
 import { money } from '../lib/finance'
 
-type Props={transactions:Transaction[];onCategory?:(id:string,category:Category)=>void;compact?:boolean;anomalies?:boolean}
-export default function TransactionsTable({transactions,onCategory,compact=false,anomalies=false}:Props){const [filter,setFilter]=useState('All');const [search,setSearch]=useState('');const [sortNewest,setSortNewest]=useState(true)
- const list=useMemo(()=>{let rows=transactions.filter(t=>filter==='All'||(filter==='Spending'?t.type==='debit':t.type==='credit')).filter(t=>`${t.description} ${t.category}`.toLowerCase().includes(search.toLowerCase()));return [...rows].sort((a,b)=>sortNewest?b.date.localeCompare(a.date):a.date.localeCompare(b.date)).slice(0,compact?7:80)},[transactions,filter,search,sortNewest,compact])
- return <section className={`panel transactions-card ${compact?'transactions-compact':''}`}>
-  <div className="panel-heading"><div><div className="eyebrow">{anomalies?'Review queue':'Activity'} <span className="count-pill">{list.length}</span></div><div className="chart-title">{anomalies?'Unusual transactions':compact?'Recent transactions':'All transactions'}</div></div><button className="icon-button subtle-menu" aria-label="Table options"><SlidersHorizontal size={15}/></button></div>
-  <div className="transaction-tools"><div className="table-search"><Search size={13}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search description or category" aria-label="Search transactions"/></div>{!compact&&<button className="filter-tab" onClick={()=>setSortNewest(v=>!v)}><ArrowUpDown size={12}/> Date</button>}<button className="icon-button export-button" title="Download filtered CSV" onClick={()=>download(list)}><ArrowDownToLine size={15}/></button></div>
-  {!anomalies&&<div className="filter-tabs" role="tablist" aria-label="Transaction type">{['All','Spending','Income'].map(t=><button role="tab" aria-selected={filter===t} key={t} className={filter===t?'filter-tab filter-active':'filter-tab'} onClick={()=>setFilter(t)}>{t}</button>)}</div>}
-  {anomalies&&<p className="table-note">Flags are prompts to review duplicates or unusually large amounts. They don’t prove a charge is wrong.</p>}
-  <div className="table-wrap"><table><thead><tr><th><button className="table-sort" onClick={()=>setSortNewest(v=>!v)}>Transaction <ArrowUpDown size={10}/></button></th><th>Category</th><th>Amount</th><th>Status</th></tr></thead><tbody>{list.map(row=><tr key={row.id}><td><div className="transaction-name"><span className={`transaction-avatar ${row.type==='credit'?'mint-avatar':'violet-avatar'}`}>{row.type==='credit'?'↑':'↓'}</span><span><b>{row.description}</b><small>{new Date(`${row.date}T12:00:00`).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</small></span></div></td><td>{onCategory?<select className="category-select" value={row.category} onChange={e=>onCategory(row.id,e.target.value as Category)} aria-label={`Change category for ${row.description}`}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select>:<span className="category-cell">{row.category}</span>}</td><td><b className={row.type==='credit'?'amount-credit':'amount-debit'}>{row.type==='credit'?'+':'−'}{money(row.amount,2)}</b></td><td><span className={`status-pill ${row.status==='Pending'?'status-pending':row.type==='credit'?'status-paid':'status-cleared'}`}><i/>{row.status==='Pending'?'Pending':row.type==='credit'?'Received':'Cleared'}</span></td></tr>)}{!list.length&&<tr><td colSpan={4} className="empty-row">No transactions match these filters.</td></tr>}</tbody></table></div>
-  {compact&&<div className="table-bottom"><span>Showing {list.length} of {transactions.length}</span><button className="view-all" onClick={()=>window.dispatchEvent(new CustomEvent('finance:navigate',{detail:'Transactions'}))}>All transactions <ArrowUpRight size={13}/></button></div>}
- </section>
-}
-function download(rows:Transaction[]){const header='date,description,amount,type,category,status';const body=rows.map(t=>[t.date,`"${t.description.replaceAll('"','""')}"`,t.amount,t.type,t.category,t.status].join(','));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([[header,...body].join('\n')],{type:'text/csv'}));a.download='finance-transactions.csv';a.click();URL.revokeObjectURL(a.href)}
+type Props = { transactions: Transaction[]; onCategory?: (id: string, category: Category) => void; anomalies?: boolean }
+const PAGE = 25
+const fmtDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
+export default function TransactionsTable({ transactions, onCategory, anomalies = false }: Props) {
+  const [filter, setFilter] = useState('All')
+  const [search, setSearch] = useState('')
+  const [newestFirst, setNewestFirst] = useState(true)
+  const [shown, setShown] = useState(PAGE)
+
+  const rows = useMemo(() => {
+    const q = search.toLowerCase()
+    return transactions
+      .filter(t => filter === 'All' || (filter === 'Spending' ? t.type === 'debit' : t.type === 'credit'))
+      .filter(t => `${t.description} ${t.category}`.toLowerCase().includes(q))
+      .sort((a, b) => (newestFirst ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)))
+  }, [transactions, filter, search, newestFirst])
+  const visible = rows.slice(0, shown)
+
+  return (
+    <section className="card">
+      {anomalies && <p className="note" style={{ marginBottom: 20 }}><Info size={18} /><span>Flags are prompts to review duplicates or unusually large amounts. They don’t prove a charge is wrong.</span></p>}
+      <div className="toolbar">
+        <label className="search-box"><Search size={18} /><input value={search} onChange={e => { setSearch(e.target.value); setShown(PAGE) }} placeholder="Search by description or category" aria-label="Search transactions" /></label>
+        {!anomalies && (
+          <div className="segmented" role="tablist" aria-label="Transaction type">
+            {['All', 'Spending', 'Income'].map(t => <button key={t} role="tab" aria-selected={filter === t} onClick={() => { setFilter(t); setShown(PAGE) }}>{t}</button>)}
+          </div>
+        )}
+        <button className="btn" onClick={() => setNewestFirst(v => !v)}><ArrowUpDown size={16} />{newestFirst ? 'Newest first' : 'Oldest first'}</button>
+        <button className="btn" onClick={() => download(rows)} title="Download as CSV"><ArrowDownToLine size={16} />Export</button>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>Transaction</th><th>Category</th><th>Amount</th></tr></thead>
+          <tbody>
+            {visible.map(row => (
+              <tr key={row.id}>
+                <td><div className="tx-name"><span className={`tx-icon ${row.type === 'credit' ? 'tx-in' : 'tx-out'}`}>{row.type === 'credit' ? '↑' : '↓'}</span><span><b>{row.description}</b><small>{fmtDate(row.date)}</small></span></div></td>
+                <td>{onCategory
+                  ? <select className="category-select" value={row.category} onChange={e => onCategory(row.id, e.target.value as Category)} aria-label={`Change category for ${row.description}`}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
+                  : row.category}</td>
+                <td><span className={row.type === 'credit' ? 'amount-in' : 'amount-out'}>{row.type === 'credit' ? '+' : '−'}{money(row.amount, 2)}</span></td>
+              </tr>
+            ))}
+            {!visible.length && <tr><td colSpan={3} className="empty-row">No transactions match these filters.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <div className="table-foot">
+        <span>Showing {visible.length} of {rows.length.toLocaleString()}</span>
+        {visible.length < rows.length && <button className="btn" onClick={() => setShown(s => s + PAGE * 2)}>Show more</button>}
+      </div>
+    </section>
+  )
+}
+
+function download(rows: Transaction[]) {
+  const header = 'date,description,amount,type,category,status'
+  const body = rows.map(t => [t.date, `"${t.description.replaceAll('"', '""')}"`, t.amount, t.type, t.category, t.status].join(','))
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([[header, ...body].join('\n')], { type: 'text/csv' }))
+  a.download = 'finance-transactions.csv'
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
