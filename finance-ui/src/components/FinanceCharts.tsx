@@ -4,7 +4,7 @@ import { categorySummary, monthlySummary, money, shortMonth } from '../lib/finan
 import type { Transaction } from '../types'
 
 export const PALETTE = ['#14b8a6', '#6366f1', '#f59e0b', '#ec4899', '#38bdf8', '#84cc16', '#f97316', '#94a3b8']
-const axis = { fill: 'var(--muted)', fontSize: 13 }
+const axis = { fill: 'var(--muted)', fontSize: 10 }
 const kfmt = (v: number) => (v >= 100000 ? `₹${(v / 100000).toFixed(v % 100000 ? 1 : 0)}L` : `₹${Math.round(v / 1000)}k`)
 
 function FinanceTooltip({ active, payload, label }: { active?: boolean; payload?: { name?: string; value?: number; color?: string }[]; label?: string }) {
