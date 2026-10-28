@@ -104,6 +104,20 @@ def inject_landing():
       padding: 18px 0 !important;
     }
     .st-key-fa_nav .fa-brand { color: #f5f5f7 !important; }
+    /* The landing page is a tall, self-scrolling document (sticky chapters, 100svh hero). Inside Streamlit's default
+       fixed-height iframe it scrolled inside a small box and felt stuck. Make the iframe fill the browser window instead,
+       so the page scrolls natively; the outer Streamlit page must not scroll as well. */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] { overflow: hidden !important; }
+    iframe[title$="finora_hero_page"] {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      border: 0 !important;
+      z-index: 999 !important;
+      background: #050506 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 

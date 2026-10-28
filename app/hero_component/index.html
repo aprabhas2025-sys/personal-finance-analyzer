@@ -261,6 +261,9 @@ html,body{width:100%;min-height:100%;height:auto;margin:0;overflow-x:hidden;over
 
 <script>
 (() => {
+  // Streamlit renders component iframes with scrolling="no", which stops this tall page from scrolling at all.
+  // theme.inject_landing() makes the iframe fill the window; here we switch its scrolling back on.
+  try { window.frameElement?.setAttribute('scrolling', 'yes'); } catch (e) { /* cross-origin host: nothing to do */ }
   const nav = document.querySelector('.fa-auth-nav');
   nav?.addEventListener('click', event => {
     const link = event.target.closest('[data-auth-action]');
