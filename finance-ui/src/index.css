@@ -139,6 +139,8 @@ h1, h2, h3, p { margin: 0; }
 .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
 .donut-center span { font-size: 11px; color: var(--muted); }
 .donut-center b { font-size: 18px; letter-spacing: -.02em; }
+.donut-center { transition: opacity .15s; }
+.ring-wrap:hover .donut-center { opacity: 0; } /* hide the centre total while a ring tooltip is showing */
 .rank-list { display: flex; flex-direction: column; gap: 12px; }
 .rank-top { display: grid; grid-template-columns: 9px 1fr auto auto; align-items: center; gap: 9px; font-size: 11px; }
 .rank-top i { width: 9px; height: 9px; border-radius: 50%; }
@@ -252,7 +254,7 @@ tr:last-child td { border-bottom: 0; }
 .empty-state h2 { font-size: 17px; } .empty-state p, .empty-state small { color: var(--muted); }
 .empty-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 6px; }
 /* ---------- Chart styling (glow, gradients, glass tooltip) ---------- */
-.finance-tooltip { min-width: 142px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 9px 30px rgba(0, 0, 0, .28); font-size: 11px; color: var(--text); }
+.finance-tooltip { min-width: 142px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--surface) 97%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 9px 30px rgba(0, 0, 0, .28); font-size: 11px; color: var(--text); }
 .finance-tooltip > span { display: block; margin-bottom: 6px; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .finance-tooltip div { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 2px 0; }
 .finance-tooltip em { display: inline-flex; align-items: center; gap: 6px; font-style: normal; color: var(--muted); }

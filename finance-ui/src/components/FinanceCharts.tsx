@@ -23,7 +23,7 @@ type TipItem = { name?: string; value?: number; color?: string; payload?: { net?
 function FinanceTooltip({ active, payload, label }: { active?: boolean; payload?: TipItem[]; label?: string }) {
   if (!active || !payload?.length) return null
   const row = payload[0].payload
-  const both = row?.income != null && row?.spend != null
+  const both = row?.income != null && row?.spend != null && payload.some(p => p.name === 'Income') // only where income is plotted
   return (
     <div className="finance-tooltip">
       <span>{label}</span>
@@ -34,6 +34,8 @@ function FinanceTooltip({ active, payload, label }: { active?: boolean; payload?
 }
 
 const grid = <CartesianGrid vertical={false} stroke="var(--grid)" strokeDasharray="2 6" />
+/** Keep tooltips above everything (incl. the ring's centre label), off the cursor line and out of the way. */
+const tipProps = { wrapperStyle: { zIndex: 50, pointerEvents: 'none' as const, outline: 'none' }, offset: 28, isAnimationActive: false }
 const cursor = { stroke: 'var(--muted)', strokeWidth: 1, strokeDasharray: '4 5' }
 
 export function CashFlowChart({ transactions }: { transactions: Transaction[] }) {
@@ -55,7 +57,7 @@ export function CashFlowChart({ transactions }: { transactions: Transaction[] })
             {grid}
             <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axis} tickMargin={12} interval="preserveStartEnd" />
             <YAxis width={44} tickLine={false} axisLine={false} tick={axis} tickFormatter={kfmt} />
-            <Tooltip content={<FinanceTooltip />} cursor={cursor} />
+            <Tooltip {...tipProps} content={<FinanceTooltip />} cursor={cursor} />
             <Area className="glow-income" type="monotone" dataKey="income" name="Income" stroke="var(--income)" strokeWidth={2.5} fill="url(#gIncome)" dot={liveDot('#10b981', last)} activeDot={{ r: 5, fill: 'var(--income)', stroke: 'var(--surface)', strokeWidth: 3 }} animationDuration={1100} />
             <Area className="glow-spend" type="monotone" dataKey="spend" name="Spending" stroke="var(--spend)" strokeWidth={2.5} fill="url(#gSpend)" dot={liveDot('#f97316', last)} activeDot={{ r: 5, fill: 'var(--spend)', stroke: 'var(--surface)', strokeWidth: 3 }} animationDuration={1300} />
           </AreaChart>
@@ -75,7 +77,8 @@ export function CategoryChart({ transactions, rows = 5 }: { transactions: Transa
   }))
   const max = Math.max(1, ...items.map(x => x.value))
   // Recharts draws the first row innermost, so reverse to put the biggest category on the outside ring.
-  const rings = [...items].reverse().map(x => ({ name: x.name, value: x.value, pct: x.pct, fill: x.color }))
+  // 'amount', not 'value': Recharts overwrites a 'value' field on radial sectors with the plotted percentage.
+  const rings = [...items].reverse().map(x => ({ name: x.name, amount: x.value, pct: x.pct, fill: x.color }))
   return (
     <section className="card chart-card">
       <div className="card-head"><div><h2 className="card-title">Where your money goes</h2><p className="card-sub">Each ring is one category’s share of spending</p></div></div>
@@ -84,7 +87,7 @@ export function CategoryChart({ transactions, rows = 5 }: { transactions: Transa
           <RadialBarChart data={rings} innerRadius="46%" outerRadius="100%" startAngle={90} endAngle={-270} barSize={7} barGap={2}>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
             <RadialBar dataKey="pct" cornerRadius={8} background={{ fill: 'var(--surface-2)' }} animationDuration={1200} />
-            <Tooltip content={<RingTip />} />
+            <Tooltip {...tipProps} content={<RingTip />} />
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="donut-center"><span>Total spent</span><b>{money(total)}</b></div>
@@ -101,10 +104,10 @@ export function CategoryChart({ transactions, rows = 5 }: { transactions: Transa
   )
 }
 
-function RingTip({ active, payload }: { active?: boolean; payload?: { payload?: { name: string; value: number; pct: number; fill: string } }[] }) {
+function RingTip({ active, payload }: { active?: boolean; payload?: { payload?: { name: string; amount: number; pct: number; fill: string } }[] }) {
   const p = payload?.[0]?.payload
   if (!active || !p) return null
-  return <div className="finance-tooltip"><span>{p.name}</span><div><em><i style={{ background: p.fill }} />Spent</em><b>{money(p.value)}</b></div><div><em>Share</em><b>{p.pct.toFixed(1)}%</b></div></div>
+  return <div className="finance-tooltip"><span>{p.name}</span><div><em><i style={{ background: p.fill }} />Spent</em><b>{money(p.amount)}</b></div><div><em>Share</em><b>{p.pct.toFixed(1)}%</b></div></div>
 }
 
 export function TrendChart({ transactions, forecast = false }: { transactions: Transaction[]; forecast?: boolean }) {
@@ -129,7 +132,7 @@ export function TrendChart({ transactions, forecast = false }: { transactions: T
             {grid}
             <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axis} tickMargin={12} interval="preserveStartEnd" />
             <YAxis width={44} tickLine={false} axisLine={false} tick={axis} tickFormatter={kfmt} />
-            <Tooltip content={<FinanceTooltip />} cursor={cursor} />
+            <Tooltip {...tipProps} content={<FinanceTooltip />} cursor={cursor} />
             <Area className="glow-spend" type="monotone" dataKey="spend" name="Spending" stroke="var(--spend)" strokeWidth={2.5} fill="url(#gTrend)" dot={liveDot('#f97316', last)} activeDot={{ r: 5, fill: 'var(--spend)', stroke: 'var(--surface)', strokeWidth: 3 }} animationDuration={1200} />
             {forecast && <Area className="glow-violet" type="monotone" dataKey="projection" name="Estimate" stroke="#818cf8" strokeWidth={2.5} strokeDasharray="6 5" fill="none" dot={(p: { cx?: number; cy?: number; index?: number }) => (p.index === data.length - 1 && p.cx != null && p.cy != null ? <g key="est"><circle className="pulse-ring" cx={p.cx} cy={p.cy} r={7} fill="#818cf8" opacity={0.45} /><circle cx={p.cx} cy={p.cy} r={4} fill="#818cf8" stroke="var(--surface)" strokeWidth={2} /></g> : <g key={p.index} />)} activeDot={{ r: 5, fill: '#818cf8', stroke: 'var(--surface)', strokeWidth: 3 }} />}
           </AreaChart>
