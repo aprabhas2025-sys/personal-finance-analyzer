@@ -1,12 +1,21 @@
 import { CATEGORIES, type Category, type MonthlyPoint, type Period, type Transaction } from '../types'
 
 const key = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-export function parseCsvRows(text: string): string[][] {
+function detectDelimiter(text: string): string {
+  const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim()).slice(0, 15)
+  let best = ',', bestScore = 0
+  for (const d of [',', ';', '\t', '|']) {
+    const score = lines.reduce((n, l) => n + l.split(d).length - 1, 0)
+    if (score > bestScore) { best = d; bestScore = score }
+  }
+  return best
+}
+export function parseCsvRows(text: string, delimiter = ','): string[][] {
   const rows: string[][] = []; let row: string[] = []; let cell = ''; let quoted = false
   for (let i=0;i<text.length;i++) { const ch=text[i]
     if(ch==='"' && quoted && text[i+1]==='"'){cell+='"';i++}
     else if(ch==='"') quoted=!quoted
-    else if(ch===',' && !quoted){row.push(cell);cell=''}
+    else if(ch===delimiter && !quoted){row.push(cell);cell=''}
     else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell=''}
     else cell+=ch
   }
@@ -18,6 +27,11 @@ function parseDate(raw: string): string | null {
   if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`
   m=s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
   if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`
+  m=s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2})(?!\d)/)
+  if(m)return `20${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`
+  const months=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+  m=s.match(/^(\d{1,2})[ /-]+([A-Za-z]{3})[A-Za-z]*[ ,/-]+(\d{2}|\d{4})(?!\d)/)
+  if(m){const mi=months.indexOf(m[2].toLowerCase());if(mi>=0)return `${m[3].length===2?'20'+m[3]:m[3]}-${String(mi+1).padStart(2,'0')}-${m[1].padStart(2,'0')}`}
   const d=new Date(s);return Number.isNaN(d.getTime())?null:d.toISOString().slice(0,10)
 }
 function parseAmount(raw: string): number {
@@ -38,13 +52,32 @@ export function categorize(description: string, type: 'debit'|'credit'): { categ
   ]
   const match=rules.find(([regex])=>regex.test(d));return match?{category:match[1],confidence:.82}:{category:'Other',confidence:.46}
 }
-export function parseBankCsv(text: string): Transaction[] {
-  const rows=parseCsvRows(text);if(rows.length<2)throw new Error('This CSV has no transaction rows.')
-  const headers=rows[0].map(key), ix=(names:string[])=>headers.findIndex(h=>names.includes(h))
-  const dateIx=ix(['date','txn date','transaction date','value date','posting date']);const descIx=ix(['description','narration','particulars','remarks','details','merchant'])
-  const debitIx=ix(['debit','withdrawal','withdrawal amount','dr']);const creditIx=ix(['credit','deposit','deposit amount','cr']);const amountIx=ix(['amount','txn amount','transaction amount']);const typeIx=ix(['type','dr cr','cr dr','transaction type','txn type']);const catIx=ix(['category'])
-  if(dateIx<0||descIx<0||(debitIx<0&&creditIx<0&&amountIx<0))throw new Error('Could not identify the date, description, and debit/credit or amount columns.')
-  return rows.slice(1).flatMap((r,i)=>{const date=parseDate(r[dateIx]||'');const description=(r[descIx]||'').trim();let amount=0;let type:'debit'|'credit'='debit'
+type Cols = { dateIx:number; descIx:number; debitIx:number; creditIx:number; amountIx:number; typeIx:number; catIx:number }
+function findCol(headers: string[], exact: string[], patterns: RegExp[], skip: number[] = []): number {
+  const byName = headers.findIndex((h,i) => !skip.includes(i) && exact.includes(h))
+  return byName >= 0 ? byName : headers.findIndex((h,i) => !skip.includes(i) && patterns.some(p => p.test(h)))
+}
+function detectColumns(row: string[]): Cols | null {
+  const h = row.map(key)
+  const dateIx = findCol(h, ['date','txn date','transaction date','tran date','posting date','value date'], [/\bdate\b/, /\bdt\b/])
+  const descIx = findCol(h, ['description','narration','particulars','remarks','details','merchant'], [/descri|narrat|particular|remark|detail|merchant|payee/], [dateIx])
+  const debitIx = findCol(h, ['debit','withdrawal','withdrawal amount','dr'], [/withdraw|^debit|^dr (amt|amount)|paid out|money out/], [dateIx, descIx])
+  const creditIx = findCol(h, ['credit','deposit','deposit amount','cr'], [/deposit|^credit|^cr (amt|amount)|paid in|money in/], [dateIx, descIx, debitIx])
+  const amountIx = findCol(h, ['amount','txn amount','transaction amount'], [/amount|\bamt\b/], [dateIx, descIx, debitIx, creditIx].concat(h.map((x,i)=>/balance|bal\b/.test(x)?i:-1).filter(i=>i>=0)))
+  const typeIx = findCol(h, ['type','dr cr','cr dr','transaction type','txn type'], [/^(dr cr|cr dr|type)$/, /txn type|transaction type/], [dateIx, descIx, amountIx])
+  const catIx = findCol(h, ['category'], [])
+  if (dateIx < 0 || descIx < 0 || (debitIx < 0 && creditIx < 0 && amountIx < 0)) return null
+  return { dateIx, descIx, debitIx, creditIx, amountIx, typeIx, catIx }
+}
+export function parseBankCsv(input: string): Transaction[] {
+  const text = input.replace(/^\uFEFF/, '')
+  const rows = parseCsvRows(text, detectDelimiter(text)); if (rows.length < 2) throw new Error('This CSV has no transaction rows.')
+  // Bank exports often have account info above the real header, so look for the header row in the first 40 lines.
+  let headerAt = -1, cols: Cols | null = null
+  for (let i = 0; i < Math.min(rows.length - 1, 40); i++) { cols = detectColumns(rows[i]); if (cols) { headerAt = i; break } }
+  if (!cols || headerAt < 0) throw new Error(`Could not identify the date, description, and debit/credit or amount columns. Columns found: ${rows[0].map(c => c.trim()).filter(Boolean).slice(0, 8).join(', ') || 'none'}.`)
+  const { dateIx, descIx, debitIx, creditIx, amountIx, typeIx, catIx } = cols
+  return rows.slice(headerAt + 1).flatMap((r,i)=>{const date=parseDate(r[dateIx]||'');const description=(r[descIx]||'').trim();let amount=0;let type:'debit'|'credit'='debit'
     if(debitIx>=0||creditIx>=0){const debit=parseAmount(r[debitIx]||'');const credit=parseAmount(r[creditIx]||'');if(Math.abs(debit)>0){amount=Math.abs(debit);type='debit'}else if(Math.abs(credit)>0){amount=Math.abs(credit);type='credit'}}
     else {const raw=parseAmount(r[amountIx]||'');amount=Math.abs(raw);const t=(r[typeIx]||'').toLowerCase();type=t?(/^(dr|d|debit|withdrawal)/.test(t)?'debit':'credit'):raw<0?'debit':'credit'}
     if(!date||!description||amount<=0)return []

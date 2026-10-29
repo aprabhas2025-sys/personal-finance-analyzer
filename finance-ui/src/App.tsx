@@ -147,7 +147,7 @@ function App() {
       <Sidebar active={active} onSelect={setActive} collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} email={email} onClear={clearData} />
       <main className="workspace" ref={workspace}>
         <Topbar onMenu={() => { if (window.innerWidth < 900) setMobileOpen(true); else setCollapsed(v => !v) }} period={period} onPeriod={setPeriod} onUpload={() => fileInput.current?.click()} theme={theme} onTheme={() => setTheme(v => (v === 'dark' ? 'light' : 'dark'))} />
-        <input ref={fileInput} className="file-input-hidden" type="file" accept=".csv,text/csv" onChange={e => void onFile(e.target.files?.[0])} />
+        <input ref={fileInput} className="file-input-hidden" type="file" accept=".csv,.txt,text/csv,text/plain,application/vnd.ms-excel" onChange={e => void onFile(e.target.files?.[0])} />
         <div className="page">
           <div className="page-heading">
             <h1>{TITLES[active] || 'Overview'}</h1>
