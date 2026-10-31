@@ -54,7 +54,7 @@
 <section class="fa-slide fa-overview" id="fa-overview">
   <div class="fa-slide-inner fa-overview-grid">
     <div class="fa-slide-copy fa-reveal"><span class="fa-kicker">01 / A clearer overview</span><h2>See the shape of your spending.</h2><p>Bring your statement into one place and explore transactions by category, date, and type. Start with sample data if you want to look around first.</p><a class="fa-slide-link" href="#fa-insights">Explore the tools <span>↓</span></a></div>
-    <div class="fa-overview-art fa-reveal" aria-label="Illustration of categorized spending"><div class="fa-art-head"><span>SPENDING OVERVIEW</span><i>•••</i></div><div class="fa-art-row"><i class="fa-art-dot a"></i><span>Everyday</span><b></b></div><div class="fa-art-row"><i class="fa-art-dot b"></i><span>Home</span><b></b></div><div class="fa-art-row"><i class="fa-art-dot c"></i><span>Travel</span><b></b></div><div class="fa-art-row"><i class="fa-art-dot d"></i><span>Subscriptions</span><b></b></div><div class="fa-art-caption">Your transactions, organized into a clearer picture.</div></div>
+    <div class="fa-overview-art fa-reveal" id="faOv" aria-label="Interactive spending overview with sample data"><div class="fa-art-head"><span>SPENDING OVERVIEW</span><div class="fa-ov-pills" id="faOvPills" role="group" aria-label="Time range"><button type="button" data-r="1">1M</button><button type="button" data-r="3" class="on">3M</button><button type="button" data-r="6">6M</button></div></div><div class="fa-ov-total"><span id="faOvTotal"></span><em id="faOvDelta"></em></div><div id="faOvRows"></div><div class="fa-ov-chart-head"><span id="faOvTitle"></span><span>Monthly trend</span></div><div class="fa-ov-chart"><svg id="faOvSvg" viewBox="0 0 600 140" width="100%" role="img" aria-label="Monthly trend for the selected category"></svg><div class="fa-ov-tip" id="faOvTip"></div></div><div class="fa-art-caption">Sample data. Click a category to see its trend.</div></div>
   </div>
 </section>
 
@@ -67,12 +67,12 @@
 <section class="fa-slide fa-planning" id="fa-planning">
   <div class="fa-slide-inner fa-plan-grid">
     <div class="fa-slide-copy fa-reveal"><span class="fa-kicker">03 / Plan with context</span><h2>Budgets for now. A forecast for what’s next.</h2><p>Set monthly limits by category, follow your progress, and compare a next-month forecast with your own recent spending history.</p><a class="fa-slide-link" href="#fa-privacy">About your data <span>↓</span></a></div>
-    <div class="fa-plan-art fa-reveal"><div class="fa-plan-title"><span>MONTHLY PLAN</span><small>OVERVIEW</small></div><div class="fa-plan-line"><span>Essentials</span><i><b class="fa-bar-one"></b></i><small>On track</small></div><div class="fa-plan-line"><span>Flexible spend</span><i><b class="fa-bar-two"></b></i><small>On track</small></div><div class="fa-plan-line"><span>Next month</span><i><b class="forecast fa-bar-three"></b></i><small>Forecast</small></div><div class="fa-forecast-trend"><div class="fa-trend-head"><span>NEXT-MONTH TREND</span><small>ILLUSTRATIVE PREVIEW</small></div><svg class="fa-trend-svg" viewBox="0 0 320 76" role="img" aria-label="Illustrative next-month spending trend"><path class="fa-trend-grid" d="M4 16H316M4 38H316M4 60H316"/><path class="fa-trend-line" d="M6 55 C30 52 35 42 58 45 S87 51 108 38 S138 33 157 39 S184 43 203 27 S232 29 248 22 S278 28 314 10"/></svg></div><div class="fa-plan-note">A visual preview — your dashboard uses your statement data.</div></div>
+    <div class="fa-plan-art fa-reveal" id="faPlan" aria-label="Interactive monthly plan using sample data"><div class="fa-plan-title"><span>MONTHLY PLAN</span><small>DRAG A LIMIT</small></div><div id="faPlanRows"></div><div class="fa-forecast-trend"><div class="fa-trend-head"><span>NEXT-MONTH FORECAST</span><small id="faPlanVerdict"></small></div><div class="fa-pl-chart"><svg id="faPlanSvg" viewBox="0 0 600 170" width="100%" role="img" aria-label="Monthly spending, next-month forecast range, and your plan limit"></svg><div class="fa-ov-tip" id="faPlanTip"></div></div><div class="fa-pl-legend"><span><i style="background:#a78bfa"></i>Actual</span><span><i style="background:#ff936b"></i>Forecast range</span><span><i class="dash"></i>Plan limit</span></div></div><div class="fa-plan-note">Sample data. Your dashboard uses your own statement.</div></div>
   </div>
 </section>
 <section class="fa-slide fa-privacy" id="fa-privacy">
   <div class="fa-slide-inner fa-privacy-grid">
-    <div class="fa-privacy-mark fa-reveal"><span>PRIVATE<br>BY DESIGN</span><i>✳</i></div>
+    <div class="fa-priv-wrap fa-reveal" id="faPriv"><div class="fa-priv-seg" id="faPrivSeg" role="group" aria-label="Where your data lives"><button type="button" data-m="local" class="on">On your machine</button><button type="button" data-m="hosted">Hosted demo</button></div><div class="fa-priv-stage" id="faPrivStage"><svg class="fa-priv-lines" viewBox="0 0 360 360" aria-hidden="true"><circle cx="180" cy="180" r="156" fill="none" stroke="rgba(167,139,250,.14)" stroke-dasharray="2 6"/><line id="faPrivLine" x1="180" y1="180" x2="180" y2="180" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" opacity=".7"/></svg><div class="fa-privacy-mark"><span id="faPrivTitle">PRIVATE<br>BY DESIGN</span><i>✳</i></div></div><div class="fa-priv-detail" aria-live="polite"><b id="faPrivH"></b><p id="faPrivP"></p></div></div>
     <div class="fa-slide-copy fa-reveal"><span class="fa-kicker">04 / Your data stays yours</span><h2>A finance workspace that keeps your account separate.</h2><p>Your statement is stored with your account. You can clear stored data or delete your account from the app. Use sample data on a hosted demo unless you trust the host.</p><a class="fa-slide-link" href="#fa-start">Get started <span>↓</span></a></div>
   </div>
 </section>
@@ -117,6 +117,71 @@ html,body{width:100%;min-height:100%;height:auto;margin:0;overflow-x:hidden;over
 .fa-roster-section .fa-kicker{color:#a78bfa}@media(max-width:900px){.fa-roster-section{position:relative;top:auto;min-height:100svh;padding:78px 22px 38px}.fa-roster-top{top:20px;left:22px;right:22px}.fa-roster-intro{margin-bottom:22px}.fa-roster-row{height:5rem}.fa-roster-title{font-size:clamp(3.5rem,12vw,5rem)}.fa-roster-images{transform:translateX(-50%) scale(.78);transform-origin:top center}.fa-roster-tag{font-size:16px;padding:5px 11px}}
 @media(max-width:480px){.fa-roster-section{padding-left:14px;padding-right:14px}.fa-roster-top{left:14px;right:14px}.fa-roster-row{width:100%}.fa-roster-title{font-size:clamp(3.25rem,13vw,4.5rem)}.fa-roster-images{transform:translateX(-50%) scale(.68)}}
 @media(prefers-reduced-motion:reduce){.fa-roster-section{position:relative;min-height:0}.fa-roster-row{height:10rem!important}.fa-roster-images,.fa-roster-photo{display:none}.fa-roster-tag-stage{display:none}}@media(max-width:900px) and (prefers-reduced-motion:reduce){.fa-roster-row{height:5rem!important}}.fa-auth-nav{position:absolute;z-index:10;top:clamp(22px,4vh,42px);right:clamp(20px,5vw,72px);display:flex;gap:10px;align-items:center}.fa-auth-nav a{display:inline-flex;align-items:center;justify-content:center;min-width:110px;height:44px;padding:0 20px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(14px);color:#f5f5f7;text-decoration:none;font-size:13px;font-weight:600;transition:transform .2s,background .2s}.fa-auth-nav a:hover{transform:translateY(-2px);background:rgba(255,255,255,.16)}.fa-auth-nav .fa-auth-start{border-color:transparent;background:linear-gradient(120deg,#8b5cf6,#5b7cfa);box-shadow:0 8px 24px rgba(91,124,250,.25)}@media(max-width:580px){.fa-auth-nav{top:18px;right:16px;gap:7px}.fa-auth-nav a{min-width:78px;height:39px;padding:0 13px;font-size:12px}}
+</style>
+<style id="fa-ov-style">
+.fa-ov-pills{display:flex;gap:2px;background:rgba(255,255,255,.06);border-radius:999px;padding:3px}
+.fa-ov-pills button{all:unset;cursor:pointer;font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.5);padding:4px 11px;border-radius:999px;transition:background .2s,color .2s}
+.fa-ov-pills button:hover{color:#fff}
+.fa-ov-pills button.on{background:#a78bfa;color:#120d22}
+.fa-ov-pills button:focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
+.fa-ov-total{display:flex;align-items:baseline;gap:12px;padding:0 0 16px}
+.fa-ov-total span{font-size:clamp(26px,3vw,34px);font-weight:500;color:#f5f5f7;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.fa-ov-total em{font-style:normal;font-size:12px}
+.fa-ov-row{display:grid;grid-template-columns:12px minmax(78px,110px) 1fr auto;gap:14px;align-items:center;padding:15px 10px;margin:0 -10px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:rgba(255,255,255,.78);cursor:pointer;border-radius:12px;transition:opacity .25s,background .25s}
+.fa-ov-row:hover{background:rgba(255,255,255,.04)}
+.fa-ov-row.sel{background:rgba(255,255,255,.07)}
+.fa-ov-row:focus-visible{outline:2px solid #a78bfa;outline-offset:-2px}
+.fa-ov-track{height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden}
+.fa-ov-track b{display:block;height:100%;border-radius:6px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.fa-ov-amt{font-variant-numeric:tabular-nums;text-align:right;min-width:74px;color:#f5f5f7}
+.fa-ov-chart-head{display:flex;justify-content:space-between;margin:14px 0 4px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.45);font-size:11px}
+.fa-ov-chart{position:relative}
+.fa-ov-chart svg{display:block;overflow:visible}
+.fa-ov-tip{position:absolute;pointer-events:none;background:#1c1c22;border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:5px 9px;font-size:11px;color:#f5f5f7;white-space:nowrap;opacity:0;transition:opacity .12s}
+@media(prefers-reduced-motion:reduce){.fa-ov-track b,.fa-ov-row{transition:none}}
+</style>
+<style id="fa-ov2-style">
+#faPlan:hover{transform:none}
+.fa-pl-row{padding:14px 0 12px;border-top:1px solid rgba(255,255,255,.08)}
+.fa-pl-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(255,255,255,.82)}
+.fa-pl-chip{font-size:10px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;transition:color .3s}
+.fa-pl-bar{position:relative;height:22px;margin:8px 0 2px}
+.fa-pl-track{position:absolute;left:7px;right:7px;top:8px;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.fa-pl-track b{display:block;height:100%;border-radius:6px;transition:width .4s,background .3s}
+.fa-pl-bar input{position:absolute;inset:0;width:100%;height:22px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:ew-resize;outline:none}
+.fa-pl-bar input::-webkit-slider-runnable-track{background:transparent;height:22px}
+.fa-pl-bar input::-moz-range-track{background:transparent;height:22px}
+.fa-pl-bar input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:22px;border:0;border-radius:0;background:linear-gradient(90deg,transparent 5px,#f5f5f7 5px,#f5f5f7 9px,transparent 9px)}
+.fa-pl-bar input::-moz-range-thumb{width:14px;height:22px;border:0;border-radius:0;background:linear-gradient(90deg,transparent 5px,#f5f5f7 5px,#f5f5f7 9px,transparent 9px)}
+.fa-pl-bar input:focus-visible::-webkit-slider-thumb{background:linear-gradient(90deg,transparent 4px,#a78bfa 4px,#a78bfa 10px,transparent 10px)}
+.fa-pl-bar input:focus-visible::-moz-range-thumb{background:linear-gradient(90deg,transparent 4px,#a78bfa 4px,#a78bfa 10px,transparent 10px)}
+.fa-pl-sub{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums}
+#faPlanVerdict{font-size:10px;letter-spacing:.04em}
+.fa-pl-chart{position:relative}
+.fa-pl-chart svg{display:block;overflow:visible}
+.fa-pl-legend{display:flex;gap:16px;margin-top:8px;font-size:10px;color:rgba(255,255,255,.42)}
+.fa-pl-legend span{display:flex;align-items:center;gap:6px}
+.fa-pl-legend i{width:10px;height:3px;border-radius:2px;display:block}
+.fa-pl-legend i.dash{background:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 3px,transparent 3px 6px)}
+.fa-priv-wrap{width:min(380px,100%);margin:0 auto;display:flex;flex-direction:column;gap:18px;align-items:stretch}
+.fa-priv-seg{display:flex;gap:2px;align-self:center;background:rgba(255,255,255,.06);border-radius:999px;padding:3px}
+.fa-priv-seg button{all:unset;cursor:pointer;font-size:11px;letter-spacing:.04em;color:rgba(255,255,255,.55);padding:6px 14px;border-radius:999px;transition:background .2s,color .2s}
+.fa-priv-seg button:hover{color:#fff}
+.fa-priv-seg button.on{background:#a78bfa;color:#120d22}
+.fa-priv-seg button:focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
+.fa-priv-stage{position:relative;width:100%;aspect-ratio:1}
+.fa-priv-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fa-priv-stage .fa-privacy-mark{position:absolute;inset:20%;width:auto;margin:0;aspect-ratio:auto;font-size:11px}
+.fa-priv-stage .fa-privacy-mark i{right:18%;top:14%;font-size:20px}
+.fa-priv-node{all:unset;box-sizing:border-box;position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:rgba(255,255,255,.7);background:#16161b;border:1px solid rgba(255,255,255,.16);transition:transform .25s,color .25s,border-color .25s,background .25s,box-shadow .25s}
+.fa-priv-node svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.fa-priv-node:hover{transform:scale(1.1);color:#fff}
+.fa-priv-node.on{color:#a78bfa;border-color:#a78bfa;background:rgba(167,139,250,.16);box-shadow:0 0 0 6px rgba(167,139,250,.1)}
+.fa-priv-node:focus-visible{outline:2px solid #a78bfa;outline-offset:3px}
+.fa-priv-detail{border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03);padding:14px 16px;min-height:104px}
+.fa-priv-detail b{display:block;font-size:13px;font-weight:500;color:#f5f5f7;margin-bottom:6px}
+.fa-priv-detail p{margin:0;font-size:12px;line-height:1.65;color:rgba(255,255,255,.58)}
+@media(prefers-reduced-motion:reduce){.fa-pl-track b,.fa-priv-node{transition:none}}
 </style>
 <script type="module" src="https://cdn.spline.design/@splinetool/viewer@2.0.111/build/spline-viewer.js"></script>
 <script>
@@ -277,3 +342,194 @@ html,body{width:100%;min-height:100%;height:auto;margin:0;overflow-x:hidden;over
   setHeight();
 })();
 </script>
+<script>
+(() => {
+  const root = document.getElementById('faOv'); if (!root) return;
+  const months = ['May','Jun','Jul','Aug','Sep','Oct'];
+  const cats = [
+    {n:'Everyday',c:'#a78bfa',v:[14200,15100,13800,16400,15200,17100]},
+    {n:'Home',c:'#ff936b',v:[22000,22000,23500,22000,22000,24800]},
+    {n:'Travel',c:'#7dd3c7',v:[3000,9800,2500,12400,4100,6200]},
+    {n:'Subscriptions',c:'#f2d77c',v:[1800,1800,2100,2100,2100,2400]}
+  ];
+  let range = 3, sel = 0;
+  const fmt = n => '\u20B9' + Math.round(n).toLocaleString('en-IN');
+  const sum = c => c.v.slice(-range).reduce((a, b) => a + b, 0);
+  const rowsEl = document.getElementById('faOvRows'), svg = document.getElementById('faOvSvg'), tip = document.getElementById('faOvTip');
+  const W = 600, H = 140, pl = 10, pr = 10, pt = 12, pb = 22;
+  function renderRows() {
+    const max = Math.max(...cats.map(sum));
+    rowsEl.innerHTML = cats.map((c, i) => `<div class="fa-ov-row${i === sel ? ' sel' : ''}" data-i="${i}" role="button" tabindex="0" aria-pressed="${i === sel}"><i class="fa-art-dot" style="background:${c.c}"></i><span>${c.n}</span><div class="fa-ov-track"><b style="width:${(sum(c) / max * 100).toFixed(1)}%;background:${c.c}"></b></div><span class="fa-ov-amt">${fmt(sum(c))}</span></div>`).join('');
+    document.getElementById('faOvTotal').textContent = fmt(cats.reduce((a, c) => a + sum(c), 0));
+    const last = cats.reduce((a, c) => a + c.v[5], 0), prev = cats.reduce((a, c) => a + c.v[4], 0), d = (last - prev) / prev * 100;
+    const de = document.getElementById('faOvDelta');
+    de.textContent = (d > 0 ? '+' : '') + d.toFixed(1) + '% Oct vs Sep';
+    de.style.color = d > 0 ? '#ff936b' : '#7dd3c7';
+    const rows = [...rowsEl.children];
+    rows.forEach(r => {
+      const pick = () => { sel = +r.dataset.i; renderRows(); renderChart(); };
+      r.onmouseenter = () => rows.forEach(x => x.style.opacity = x === r ? 1 : .45);
+      r.onmouseleave = () => rows.forEach(x => x.style.opacity = 1);
+      r.onclick = pick;
+      r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } };
+    });
+  }
+  function renderChart() {
+    const c = cats[sel], max = Math.max(...c.v) * 1.15;
+    document.getElementById('faOvTitle').textContent = c.n;
+    const X = i => pl + i * (W - pl - pr) / 5, Y = v => pt + (1 - v / max) * (H - pt - pb);
+    const line = c.v.map((v, i) => (i ? 'L' : 'M') + X(i) + ' ' + Y(v)).join(' ');
+    svg.innerHTML = `<path d="${line} L${X(5)} ${H - pb} L${X(0)} ${H - pb} Z" fill="${c.c}" opacity=".14"/><path d="${line}" fill="none" stroke="${c.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+      months.map((m, i) => `<text x="${X(i)}" y="${H - 5}" text-anchor="middle" font-size="11" fill="${i >= 6 - range ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.3)'}">${m}</text>`).join('') +
+      `<line id="faVl" y1="${pt}" y2="${H - pb}" stroke="rgba(255,255,255,.28)" stroke-dasharray="3 3" opacity="0"/><circle id="faHd" r="5" fill="${c.c}" stroke="#0b0b0d" stroke-width="2" opacity="0"/>`;
+    const vl = svg.querySelector('#faVl'), hd = svg.querySelector('#faHd');
+    const move = e => {
+      const r = svg.getBoundingClientRect(), t = e.touches ? e.touches[0] : e, x = (t.clientX - r.left) / r.width * W;
+      const i = Math.max(0, Math.min(5, Math.round((x - pl) / ((W - pl - pr) / 5))));
+      vl.setAttribute('x1', X(i)); vl.setAttribute('x2', X(i)); vl.setAttribute('opacity', 1);
+      hd.setAttribute('cx', X(i)); hd.setAttribute('cy', Y(c.v[i])); hd.setAttribute('opacity', 1);
+      tip.innerHTML = `<span style="color:rgba(255,255,255,.5)">${months[i]}</span>&nbsp; ${fmt(c.v[i])}`;
+      tip.style.opacity = 1;
+      tip.style.left = Math.min(Math.max(X(i) / W * r.width - 40, 0), r.width - 110) + 'px';
+      tip.style.top = Math.max(Y(c.v[i]) / H * r.height - 36, 0) + 'px';
+    };
+    const leave = () => { tip.style.opacity = 0; vl.setAttribute('opacity', 0); hd.setAttribute('opacity', 0); };
+    svg.onmousemove = move; svg.ontouchmove = move; svg.onmouseleave = leave; svg.ontouchend = leave;
+  }
+  document.getElementById('faOvPills').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    range = +b.dataset.r;
+    root.querySelectorAll('#faOvPills button').forEach(x => x.classList.toggle('on', x === b));
+    renderRows(); renderChart();
+  });
+  renderRows(); renderChart();
+})();
+</script>
+<script>
+(() => {
+  const root = document.getElementById('faPlan'); if (!root) return;
+  const fmt = n => '\u20B9' + Math.round(n).toLocaleString('en-IN');
+  const cats = [{n:'Essentials', spent:21300, limit:25000, max:40000}, {n:'Flexible spend', spent:9800, limit:12000, max:20000}];
+  const months = ['May','Jun','Jul','Aug','Sep','Oct','Nov'];
+  const hist = [28400,30200,29600,33900,31800,31100], fc = 32600, lo = 29800, hi = 35400;
+  const rowsEl = document.getElementById('faPlanRows'), svg = document.getElementById('faPlanSvg'), tip = document.getElementById('faPlanTip'), verdict = document.getElementById('faPlanVerdict');
+  rowsEl.innerHTML = cats.map((c, i) => `<div class="fa-pl-row"><div class="fa-pl-top"><span>${c.n}</span><span class="fa-pl-chip"></span></div><div class="fa-pl-bar"><div class="fa-pl-track"><b></b></div><input type="range" min="1000" max="${c.max}" step="500" value="${c.limit}" aria-label="${c.n} monthly limit"></div><div class="fa-pl-sub"><span class="s"></span><span class="l"></span></div></div>`).join('');
+  const els = [...rowsEl.children].map(r => ({chip:r.querySelector('.fa-pl-chip'), fill:r.querySelector('.fa-pl-track b'), s:r.querySelector('.s'), l:r.querySelector('.l'), inp:r.querySelector('input')}));
+  function status(c) {
+    const r = c.spent / c.limit;
+    if (r > 1) return {t:'Over by ' + fmt(c.spent - c.limit), c:'#ff936b'};
+    if (r >= .8) return {t:'Near limit', c:'#f2d77c'};
+    return {t:'On track', c:'#a78bfa'};
+  }
+  function updateRow(i) {
+    const c = cats[i], e = els[i], st = status(c);
+    e.chip.textContent = st.t; e.chip.style.color = st.c;
+    e.fill.style.width = Math.min(c.spent / c.max, 1) * 100 + '%'; e.fill.style.background = st.c;
+    e.s.textContent = fmt(c.spent) + ' spent'; e.l.textContent = 'Limit ' + fmt(c.limit);
+    e.inp.setAttribute('aria-valuetext', fmt(c.limit) + ' limit, ' + st.t);
+  }
+  const W = 600, H = 170, pl = 14, pr = 14, pt = 22, pb = 24;
+  const X = i => pl + i * (W - pl - pr) / 6;
+  let Y = v => 0;
+  function renderChart() {
+    const plan = cats.reduce((a, c) => a + c.limit, 0);
+    const dmin = Math.min(...hist, lo, plan) * .92, dmax = Math.max(...hist, hi, plan) * 1.05;
+    Y = v => pt + (1 - (v - dmin) / (dmax - dmin)) * (H - pt - pb);
+    const line = hist.map((v, i) => (i ? 'L' : 'M') + X(i) + ' ' + Y(v)).join(' ');
+    const py = Y(plan), ly = Math.max(py - 6, 12);
+    svg.innerHTML =
+      `<path d="M${X(5)} ${Y(hist[5])} L${X(6)} ${Y(hi)} L${X(6)} ${Y(lo)} Z" fill="#ff936b" opacity=".18"/>` +
+      `<line x1="${pl}" x2="${W - pr}" y1="${py}" y2="${py}" stroke="rgba(255,255,255,.4)" stroke-dasharray="4 5"/>` +
+      `<text x="${pl}" y="${ly}" font-size="11" fill="rgba(255,255,255,.55)">Plan ${fmt(plan)}</text>` +
+      `<path d="${line}" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>` +
+      `<path d="M${X(5)} ${Y(hist[5])} L${X(6)} ${Y(fc)}" fill="none" stroke="#ff936b" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>` +
+      hist.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="#a78bfa" stroke="#0e0e12" stroke-width="2"/>`).join('') +
+      `<circle cx="${X(6)}" cy="${Y(fc)}" r="5" fill="#ff936b" stroke="#0e0e12" stroke-width="2"/>` +
+      months.map((m, i) => `<text x="${X(i)}" y="${H - 5}" text-anchor="middle" font-size="11" fill="${i === 6 ? '#ff936b' : 'rgba(255,255,255,.5)'}">${m}</text>`).join('') +
+      `<line id="faPlVl" y1="${pt}" y2="${H - pb}" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 3" opacity="0"/>`;
+    const diff = plan - fc;
+    let txt, col;
+    if (diff < 0) { txt = fmt(-diff) + ' over plan'; col = '#ff936b'; }
+    else if (hi > plan) { txt = 'Under plan, upper range is close'; col = '#f2d77c'; }
+    else { txt = fmt(diff) + ' under plan'; col = '#7dd3c7'; }
+    verdict.textContent = 'Forecast ' + fmt(fc) + ' \u00B7 ' + txt; verdict.style.color = col;
+  }
+  function move(e) {
+    const r = svg.getBoundingClientRect(), t = e.touches ? e.touches[0] : e, x = (t.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(6, Math.round((x - pl) / ((W - pl - pr) / 6))));
+    const vl = svg.querySelector('#faPlVl'); if (!vl) return;
+    vl.setAttribute('x1', X(i)); vl.setAttribute('x2', X(i)); vl.setAttribute('opacity', 1);
+    const v = i < 6 ? hist[i] : fc;
+    tip.innerHTML = i < 6 ? `<span style="color:rgba(255,255,255,.5)">${months[i]}</span>&nbsp; ${fmt(v)}` : `<span style="color:#ff936b">Nov forecast</span>&nbsp; ${fmt(fc)}<br><span style="color:rgba(255,255,255,.5)">Likely ${fmt(lo)} to ${fmt(hi)}</span>`;
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(Math.max(X(i) / W * r.width - 50, 0), r.width - 150) + 'px';
+    tip.style.top = Math.max(Y(v) / H * r.height - (i < 6 ? 36 : 52), 0) + 'px';
+  }
+  function leave() { tip.style.opacity = 0; const vl = svg.querySelector('#faPlVl'); if (vl) vl.setAttribute('opacity', 0); }
+  svg.addEventListener('mousemove', move); svg.addEventListener('touchmove', move, {passive:true}); svg.addEventListener('mouseleave', leave); svg.addEventListener('touchend', leave);
+  els.forEach((e, i) => e.inp.addEventListener('input', () => { cats[i].limit = +e.inp.value; updateRow(i); renderChart(); }));
+  cats.forEach((_, i) => updateRow(i)); renderChart();
+})();
+
+(() => {
+  const root = document.getElementById('faPriv'); if (!root) return;
+  const ic = {
+    lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+    db: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    userx: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 9l4 4M21 9l-4 4"/>',
+    laptop: '<rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M3 19h18"/>',
+    server: '<rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/><path d="M8 7h.01M8 17h.01"/>',
+    chat: '<path d="M4 5h16v11H9l-5 4z"/>'
+  };
+  const nodes = [
+    {ic:'lock', t:'HASHED<br>PASSWORDS', h:'Passwords are never stored', p:'Only a salted scrypt hash is saved. After five wrong attempts, the account locks for five minutes.'},
+    {ic:'db', t:'ONE FILE<br>PER ACCOUNT', h:'Separate by account', p:'Every account gets its own data file, so one account can\u2019t see another\u2019s statement.'},
+    {ic:'trash', t:'CLEAR<br>ANYTIME', h:'Clear stored data', p:'Empty your saved statement and budgets from inside the app whenever you like.'},
+    {ic:'userx', t:'DELETE<br>ACCOUNT', h:'Delete your account', p:'Deleting your account removes it together with its data file.'},
+    {where:true},
+    {ic:'chat', t:'AI IS<br>OPT-IN', h:'The chat assistant is optional', p:'It stays off unless you turn it on. When it\u2019s on, only totals and merchant names are sent, never your raw rows.'}
+  ];
+  const where = {
+    local: {ic:'laptop', t:'STAYS ON<br>THIS DEVICE', h:'Local by default', p:'Accounts and data are files under data/ on your own machine. By default, nothing leaves it.'},
+    hosted: {ic:'server', t:'ON THE<br>HOST\u2019S DISK', h:'On a hosted demo', p:'Uploads and accounts live on the server\u2019s disk. Use sample data unless you trust the host.'}
+  };
+  let mode = 'local', cur = 0, auto = true, timer = null;
+  const stage = document.getElementById('faPrivStage'), line = document.getElementById('faPrivLine');
+  const T = document.getElementById('faPrivTitle'), H = document.getElementById('faPrivH'), P = document.getElementById('faPrivP');
+  const R = 156, pos = i => { const a = (-90 + i * 60) * Math.PI / 180; return [180 + R * Math.cos(a), 180 + R * Math.sin(a)]; };
+  const data = i => nodes[i].where ? where[mode] : nodes[i];
+  const btns = nodes.map((n, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'fa-priv-node';
+    const [x, y] = pos(i); b.style.left = x / 360 * 100 + '%'; b.style.top = y / 360 * 100 + '%';
+    b.addEventListener('mouseenter', () => { auto = false; select(i); });
+    b.addEventListener('focus', () => { auto = false; select(i); });
+    b.addEventListener('click', () => { auto = false; select(i); });
+    stage.appendChild(b); return b;
+  });
+  function select(i) {
+    cur = i; const d = data(i);
+    btns.forEach((b, j) => {
+      const dj = data(j);
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ic[dj.ic] + '</svg>';
+      b.setAttribute('aria-label', dj.h); b.classList.toggle('on', j === i); b.setAttribute('aria-pressed', j === i);
+    });
+    T.innerHTML = d.t; H.textContent = d.h; P.textContent = d.p;
+    const a = (-90 + i * 60) * Math.PI / 180;
+    line.setAttribute('x1', 180 + 108 * Math.cos(a)); line.setAttribute('y1', 180 + 108 * Math.sin(a));
+    line.setAttribute('x2', 180 + (R - 21) * Math.cos(a)); line.setAttribute('y2', 180 + (R - 21) * Math.sin(a));
+  }
+  document.getElementById('faPrivSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.m; auto = false;
+    root.querySelectorAll('#faPrivSeg button').forEach(x => x.classList.toggle('on', x === b));
+    select(4);
+  });
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const start = () => { if (timer || reduce) return; timer = setInterval(() => { if (!auto) return stop(); select((cur + 1) % nodes.length); }, 4200); };
+  const stop = () => { clearInterval(timer); timer = null; };
+  select(0);
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => e.isIntersecting && auto ? start() : stop()), {threshold: .4}).observe(root);
+})();
+</script>
+
