@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownToLine, ArrowUpDown, Info, Search } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpDown, Info, Search, Trash2 } from 'lucide-react'
 import { CATEGORIES, type Category, type Transaction } from '../types'
 import { money } from '../lib/finance'
 
-type Props = { transactions: Transaction[]; onCategory?: (id: string, category: Category) => void; anomalies?: boolean }
+type Props = { transactions: Transaction[]; onCategory?: (id: string, category: Category) => void; onDelete?: (id: string) => void; anomalies?: boolean }
 const PAGE = 25
 const fmtDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
-export default function TransactionsTable({ transactions, onCategory, anomalies = false }: Props) {
+export default function TransactionsTable({ transactions, onCategory, onDelete, anomalies = false }: Props) {
   const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState('')
   const [newestFirst, setNewestFirst] = useState(true)
@@ -41,11 +41,11 @@ export default function TransactionsTable({ transactions, onCategory, anomalies 
           <tbody>
             {visible.map(row => (
               <tr key={row.id}>
-                <td><div className="tx-name"><span className={`tx-icon ${row.type === 'credit' ? 'tx-in' : 'tx-out'}`}>{row.type === 'credit' ? '↑' : '↓'}</span><span><b>{row.description}</b><small>{fmtDate(row.date)}</small></span></div></td>
+                <td><div className="tx-name"><span className={`tx-icon ${row.type === 'credit' ? 'tx-in' : 'tx-out'}`}>{row.type === 'credit' ? '↑' : '↓'}</span><span><b>{row.description}{row.manual && <i className="cash-tag">Cash</i>}</b><small>{fmtDate(row.date)}</small></span></div></td>
                 <td>{onCategory
                   ? <select className="category-select" value={row.category} onChange={e => onCategory(row.id, e.target.value as Category)} aria-label={`Change category for ${row.description}`}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
                   : row.category}</td>
-                <td><span className={row.type === 'credit' ? 'amount-in' : 'amount-out'}>{row.type === 'credit' ? '+' : '−'}{money(row.amount, 2)}</span></td>
+                <td><span className={row.type === 'credit' ? 'amount-in' : 'amount-out'}>{row.type === 'credit' ? '+' : '−'}{money(row.amount, 2)}</span>{row.manual && onDelete && <button className="row-delete" title="Delete this cash entry" aria-label={`Delete ${row.description}`} onClick={() => { if (window.confirm(`Delete “${row.description}”?`)) onDelete(row.id) }}><Trash2 size={14} /></button>}</td>
               </tr>
             ))}
             {!visible.length && <tr><td colSpan={3} className="empty-row">No transactions match these filters.</td></tr>}

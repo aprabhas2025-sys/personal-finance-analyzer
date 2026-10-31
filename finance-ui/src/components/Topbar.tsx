@@ -1,9 +1,9 @@
-import { CalendarDays, Menu, Moon, Sun, Upload } from 'lucide-react'
+import { CalendarDays, Menu, Moon, Plus, Sun, Upload } from 'lucide-react'
 import type { Period } from '../types'
 
-type Props = { onMenu: () => void; period: Period; onPeriod: (p: Period) => void; onUpload: () => void; theme: 'dark' | 'light'; onTheme: () => void }
+type Props = { onMenu: () => void; period: Period; onPeriod: (p: Period) => void; onUpload: () => void; onAdd: () => void; theme: 'dark' | 'light'; onTheme: () => void }
 
-export default function Topbar({ onMenu, period, onPeriod, onUpload, theme, onTheme }: Props) {
+export default function Topbar({ onMenu, period, onPeriod, onUpload, onAdd, theme, onTheme }: Props) {
   return (
     <header className="topbar">
       <div className="topbar-start">
@@ -17,6 +17,7 @@ export default function Topbar({ onMenu, period, onPeriod, onUpload, theme, onTh
         </label>
       </div>
       <div className="topbar-end">
+        <button className="btn btn-primary" onClick={onAdd}><Plus size={18} /><span>Add cash</span></button>
         <button className="btn" onClick={onUpload}><Upload size={18} /><span>Import CSV</span></button>
         <button className="icon-button" onClick={onTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
           {theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}

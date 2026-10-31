@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowRight, CheckCircle2, CircleAlert, FileUp, LoaderCircle, RefreshCw, Sparkles, TrendingUp } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, CircleAlert, FileUp, LoaderCircle, Plus, RefreshCw, Sparkles, TrendingUp } from 'lucide-react'
 import sampleStatement from './data/sample-statement.csv?raw'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import TransactionsTable from './components/TransactionsTable'
 import BudgetsPanel from './components/BudgetsPanel'
 import AssistantPanel from './components/AssistantPanel'
+import AddCashModal, { type CashEntry } from './components/AddCashModal'
 import { CashFlowChart, CategoryChart, PALETTE, TrendChart } from './components/FinanceCharts'
 import { categorySummary, findAnomalies, getPeriodStart, money, monthlySummary, parseBankCsv, recurringPayments } from './lib/finance'
 import { type Category, type Period, type Transaction } from './types'
@@ -44,7 +45,7 @@ function Highlight({ label, value, go, onClick, icon }: { label: string; value: 
   )
 }
 
-function EmptyState({ onUpload, onSample }: { onUpload: () => void; onSample: () => void }) {
+function EmptyState({ onUpload, onSample, onAdd }: { onUpload: () => void; onSample: () => void; onAdd: () => void }) {
   return (
     <section className="card empty-state">
       <div className="empty-icon"><FileUp size={26} /></div>
@@ -53,6 +54,7 @@ function EmptyState({ onUpload, onSample }: { onUpload: () => void; onSample: ()
       <div className="empty-actions">
         <button className="btn btn-primary" onClick={onUpload}><FileUp size={17} />Choose CSV</button>
         <button className="btn" onClick={onSample}><Sparkles size={17} />Load sample data</button>
+        <button className="btn" onClick={onAdd}><Plus size={17} />Add cash entry</button>
       </div>
       <small>CSV files only · Sample data is synthetic</small>
     </section>
@@ -76,6 +78,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [adding, setAdding] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const workspace = useRef<HTMLElement>(null)
 
@@ -104,9 +107,20 @@ function App() {
     setLoading(true); setError('')
     try {
       const rows = parseBankCsv(await file.text())
-      setTransactions(rows); setPeriod('All data'); setNotice(`${rows.length.toLocaleString()} transactions imported from ${file.name}.`); setActive('Overview')
+      const cash = transactions.filter(t => t.manual) // keep hand-entered cash; a new statement shouldn't wipe it
+      setTransactions([...rows, ...cash].sort((a, b) => a.date.localeCompare(b.date))); setPeriod('All data'); setNotice(`${rows.length.toLocaleString()} transactions imported from ${file.name}${cash.length ? `, plus your ${cash.length} cash entr${cash.length === 1 ? 'y' : 'ies'}` : ''}.`); setActive('Overview')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not read this CSV.') }
     finally { setLoading(false); if (fileInput.current) fileInput.current.value = '' }
+  }
+  function addCash(entry: CashEntry) {
+    const tx: Transaction = { ...entry, id: `cash-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, confidence: 1, status: 'Cleared', manual: true }
+    setTransactions(rows => [...rows, tx].sort((a, b) => a.date.localeCompare(b.date)))
+    setNotice(`Added ${entry.type === 'debit' ? 'spending' : 'income'} of ${money(entry.amount, 2)} (${entry.description}).`)
+  }
+  function deleteCash(id: string) {
+    const rest = transactions.filter(t => t.id !== id)
+    if (!rest.length) localStorage.removeItem(transactionStorageKey) // the save effect skips empty lists, so clear it here
+    setTransactions(rest); setNotice('Cash entry deleted.')
   }
   function clearData() {
     setTransactions([]); localStorage.removeItem(transactionStorageKey); setActive('Overview'); setNotice('Your statement was removed from this browser.')
@@ -146,7 +160,7 @@ function App() {
     <div className={`app-shell ${theme === 'dark' ? 'theme-dark' : ''}`}>
       <Sidebar active={active} onSelect={setActive} collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} email={email} onClear={clearData} />
       <main className="workspace" ref={workspace}>
-        <Topbar onMenu={() => { if (window.innerWidth < 900) setMobileOpen(true); else setCollapsed(v => !v) }} period={period} onPeriod={setPeriod} onUpload={() => fileInput.current?.click()} theme={theme} onTheme={() => setTheme(v => (v === 'dark' ? 'light' : 'dark'))} />
+        <Topbar onMenu={() => { if (window.innerWidth < 900) setMobileOpen(true); else setCollapsed(v => !v) }} period={period} onPeriod={setPeriod} onUpload={() => fileInput.current?.click()} onAdd={() => setAdding(true)} theme={theme} onTheme={() => setTheme(v => (v === 'dark' ? 'light' : 'dark'))} />
         <input ref={fileInput} className="file-input-hidden" type="file" accept=".csv,.txt,text/csv,text/plain,application/vnd.ms-excel" onChange={e => void onFile(e.target.files?.[0])} />
         <div className="page">
           <div className="page-heading">
@@ -159,7 +173,7 @@ function App() {
           {notice && <div className="notice"><CheckCircle2 size={18} />{notice}<button onClick={() => setNotice('')}>Dismiss</button></div>}
           {loading && <div className="loading-strip"><LoaderCircle size={18} /> Loading statement data…</div>}
 
-          {!transactions.length && !loading ? <EmptyState onUpload={() => fileInput.current?.click()} onSample={() => void loadSample()} /> : <>
+          {!transactions.length && !loading ? <EmptyState onUpload={() => fileInput.current?.click()} onSample={() => void loadSample()} onAdd={() => setAdding(true)} /> : <>
 
             {active === 'Overview' && <>
               <div className="summary-line"><Sparkles size={20} />{summary}</div>
@@ -177,7 +191,7 @@ function App() {
               </div>
             </>}
 
-            {active === 'Transactions' && <TransactionsTable transactions={filtered} onCategory={updateCategory} />}
+            {active === 'Transactions' && <TransactionsTable transactions={filtered} onCategory={updateCategory} onDelete={deleteCash} />}
 
             {active === 'Anomalies' && <div className="stack">
               <div className="stats-3">
@@ -232,6 +246,7 @@ function App() {
             {active === 'Ask' && <AssistantPanel transactions={filtered} />}
           </>}
 
+          {adding && <AddCashModal onAdd={addCash} onClose={() => setAdding(false)} />}
           <footer className="page-footer">Finance Analyzer · Your statement stays on this device · Not financial advice</footer>
         </div>
       </main>
