@@ -131,6 +131,7 @@ h1, h2, h3, p { margin: 0; }
 .kpi-note { font-size: 11px; color: var(--muted); }
 .overview-charts { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 17px; }
 .chart-area { height: 231px; }
+.donut-wrap { position: relative; height: 210px; margin: 0 auto 12px; }
 .overview-charts > .card:first-child { display: flex; flex-direction: column; }
 .overview-charts > .card:first-child .chart-area { flex: 1; min-height: 231px; height: auto; }
 .chart-legend { display: flex; gap: 17px; margin-top: 12px; font-size: 11px; color: var(--muted); }
@@ -140,7 +141,7 @@ h1, h2, h3, p { margin: 0; }
 .donut-center span { font-size: 11px; color: var(--muted); }
 .donut-center b { font-size: 18px; letter-spacing: -.02em; }
 .donut-center { transition: opacity .15s; }
-.ring-wrap:hover .donut-center { opacity: 0; } /* hide the centre total while a ring tooltip is showing */
+.donut-wrap:hover .donut-center { opacity: 0; } /* keep the total clear while the chart tooltip is open */
 .rank-list { display: flex; flex-direction: column; gap: 12px; }
 .rank-top { display: grid; grid-template-columns: 9px 1fr auto auto; align-items: center; gap: 9px; font-size: 11px; }
 .rank-top i { width: 9px; height: 9px; border-radius: 50%; }

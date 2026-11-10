@@ -9,6 +9,7 @@ import AssistantPanel from './components/AssistantPanel'
 import AddCashModal, { type CashEntry } from './components/AddCashModal'
 import { CashFlowChart, CategoryChart, PALETTE, TrendChart } from './components/FinanceCharts'
 import { categorySummary, findAnomalies, getPeriodStart, money, monthlySummary, parseBankCsv, recurringPayments } from './lib/finance'
+import { parseStatementFile } from './importStatement'
 import { type Category, type Period, type Transaction } from './types'
 
 const TITLES: Record<string, string> = { Overview: 'Overview', Transactions: 'Transactions', Anomalies: 'Unusual activity', Subscriptions: 'Recurring payments', Forecast: 'Spending forecast', 'By category': 'Spending by category', 'Monthly spend': 'Monthly spending', Budgets: 'Budgets', Ask: 'Ask about your money' }
@@ -24,6 +25,7 @@ const SUBS: Record<string, string> = {
   Ask: 'Ask a question in plain English about the statement you loaded.',
 }
 const fmtDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+const transactionKey = (t: Transaction) => `${t.date}|${t.description.trim().toLowerCase().replace(/\s+/g, ' ')}|${t.amount.toFixed(2)}|${t.type}`
 
 function Kpi({ label, value, note, color }: { label: string; value: string; note: string; color: string }) {
   return (
@@ -50,13 +52,13 @@ function EmptyState({ onUpload, onSample, onAdd }: { onUpload: () => void; onSam
     <section className="card empty-state">
       <div className="empty-icon"><FileUp size={26} /></div>
       <h2>Start with a statement</h2>
-      <p>Import a bank or UPI statement (CSV). It is processed in this browser, and you can remove it any time.</p>
+      <p>Choose one or more bank or UPI statements in Excel, CSV, TSV, text, or JSON. Matching duplicate transactions are skipped.</p>
       <div className="empty-actions">
-        <button className="btn btn-primary" onClick={onUpload}><FileUp size={17} />Choose CSV</button>
+        <button className="btn btn-primary" onClick={onUpload}><FileUp size={17} />Choose statements</button>
         <button className="btn" onClick={onSample}><Sparkles size={17} />Load sample data</button>
         <button className="btn" onClick={onAdd}><Plus size={17} />Add cash entry</button>
       </div>
-      <small>CSV files only · Sample data is synthetic</small>
+      <small>Excel, CSV, TSV, text, and JSON · Sample data is synthetic</small>
     </section>
   )
 }
@@ -80,6 +82,7 @@ function App() {
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const appendFileInput = useRef<HTMLInputElement>(null)
   const workspace = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -102,15 +105,35 @@ function App() {
     catch (e) { setError(e instanceof Error ? e.message : 'Could not load sample data.') }
     finally { setLoading(false) }
   }
-  async function onFile(file?: File) {
-    if (!file) return
+  async function onFiles(selectedFiles: FileList | null | undefined, append = false, input?: HTMLInputElement | null) {
+    const files = Array.from(selectedFiles ?? [])
+    if (!files.length) return
     setLoading(true); setError('')
     try {
-      const rows = parseBankCsv(await file.text())
-      const cash = transactions.filter(t => t.manual) // keep hand-entered cash; a new statement shouldn't wipe it
-      setTransactions([...rows, ...cash].sort((a, b) => a.date.localeCompare(b.date))); setPeriod('All data'); setNotice(`${rows.length.toLocaleString()} transactions imported from ${file.name}${cash.length ? `, plus your ${cash.length} cash entr${cash.length === 1 ? 'y' : 'ies'}` : ''}.`); setActive('Overview')
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not read this CSV.') }
-    finally { setLoading(false); if (fileInput.current) fileInput.current.value = '' }
+      const importBatchId = Date.now()
+      const parsedFiles = await Promise.all(files.map(async (file, fileIndex) => {
+        try {
+          const rows = await parseStatementFile(file)
+          return rows.map((row, rowIndex) => ({ ...row, id: `import-${importBatchId}-${fileIndex}-${rowIndex}-${Math.random().toString(36).slice(2, 7)}` }))
+        } catch (e) {
+          throw new Error(`${file.name}: ${e instanceof Error ? e.message : 'Could not read this file.'}`)
+        }
+      }))
+      const preserved = append ? transactions : transactions.filter(t => t.manual) // Keep cash and, for add mode, earlier statements.
+      const known = new Set(preserved.map(transactionKey))
+      let duplicateCount = 0
+      const rows = parsedFiles.flat().filter(row => {
+        const key = transactionKey(row)
+        if (known.has(key)) { duplicateCount++; return false }
+        known.add(key)
+        return true
+      })
+      setTransactions([...preserved, ...rows].sort((a, b) => a.date.localeCompare(b.date)))
+      setPeriod('All data')
+      setNotice(`${rows.length.toLocaleString()} transactions ${append ? 'added' : 'imported'} from ${files.length} statement${files.length === 1 ? '' : 's'}${duplicateCount ? `; skipped ${duplicateCount.toLocaleString()} duplicate${duplicateCount === 1 ? '' : 's'}` : ''}${preserved.filter(t => t.manual).length ? `; kept ${preserved.filter(t => t.manual).length} cash entr${preserved.filter(t => t.manual).length === 1 ? 'y' : 'ies'}` : ''}.`)
+      setActive('Overview')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not read this transaction file.') }
+    finally { setLoading(false); if (input) input.value = '' }
   }
   function addCash(entry: CashEntry) {
     const tx: Transaction = { ...entry, id: `cash-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, confidence: 1, status: 'Cleared', manual: true }
@@ -160,8 +183,9 @@ function App() {
     <div className={`app-shell ${theme === 'dark' ? 'theme-dark' : ''}`}>
       <Sidebar active={active} onSelect={setActive} collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} email={email} onClear={clearData} />
       <main className="workspace" ref={workspace}>
-        <Topbar onMenu={() => { if (window.innerWidth < 900) setMobileOpen(true); else setCollapsed(v => !v) }} period={period} onPeriod={setPeriod} onUpload={() => fileInput.current?.click()} onAdd={() => setAdding(true)} theme={theme} onTheme={() => setTheme(v => (v === 'dark' ? 'light' : 'dark'))} />
-        <input ref={fileInput} className="file-input-hidden" type="file" accept=".csv,.txt,text/csv,text/plain,application/vnd.ms-excel" onChange={e => void onFile(e.target.files?.[0])} />
+        <Topbar onMenu={() => { if (window.innerWidth < 900) setMobileOpen(true); else setCollapsed(v => !v) }} period={period} onPeriod={setPeriod} onUpload={() => fileInput.current?.click()} onAddStatements={() => appendFileInput.current?.click()} onAdd={() => setAdding(true)} theme={theme} onTheme={() => setTheme(v => (v === 'dark' ? 'light' : 'dark'))} />
+        <input ref={fileInput} className="file-input-hidden" type="file" multiple accept=".csv,.tsv,.txt,.json,.xls,.xlsx,text/csv,text/plain,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={e => void onFiles(e.currentTarget.files, false, e.currentTarget)} />
+        <input ref={appendFileInput} className="file-input-hidden" type="file" multiple accept=".csv,.tsv,.txt,.json,.xls,.xlsx,text/csv,text/plain,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={e => void onFiles(e.currentTarget.files, true, e.currentTarget)} />
         <div className="page">
           <div className="page-heading">
             <h1>{TITLES[active] || 'Overview'}</h1>
