@@ -1,8 +1,2 @@
-pandas>=2.0
-numpy>=1.24
-scikit-learn>=1.3
-streamlit>=1.30
-plotly>=5.18
-pytest>=7.4
-statsmodels>=0.14
-google-genai>=2.33
+# Runtime only (what Render installs). The live app needs just Streamlit; pandas/numpy come with it.
+streamlit>=1.37

@@ -5,7 +5,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run app/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    startCommand: streamlit run app/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.fileWatcherType none --server.runOnSave false --browser.gatherUsageStats false
     envVars:
       - key: FINANCE_HOSTED        # app shows the hosted privacy notice and does not retrain a shared model
         value: "1"

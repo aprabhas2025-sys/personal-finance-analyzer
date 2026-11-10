@@ -1,6 +1,7 @@
 """Signed-in Streamlit gate and embedded finance dashboard."""
 import html
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,15 +20,24 @@ if st.button("Sign out", key="finance_signout", help="Sign out of your finance w
     st.session_state.pop("view", None)
     st.rerun()
 
-assets = ROOT / "finance-ui" / "dist" / "assets"
-js_files = sorted(assets.glob("index-*.js"))
-css_files = sorted(assets.glob("index-*.css"))
-if len(js_files) != 1 or len(css_files) != 1:
+ASSETS = ROOT / "finance-ui" / "dist" / "assets"
+
+
+@lru_cache(maxsize=1)
+def _bundle():
+    """Read and escape the built dashboard once per server process (it is ~750 KB), not on every Streamlit rerun."""
+    js_files, css_files = sorted(ASSETS.glob("index-*.js")), sorted(ASSETS.glob("index-*.css"))
+    if len(js_files) != 1 or len(css_files) != 1:
+        return None
+    return (css_files[0].read_text(encoding="utf-8").replace("</style", "<\\/style"),
+            js_files[0].read_text(encoding="utf-8").replace("</script", "<\\/script"))
+
+
+bundle = _bundle()
+if bundle is None:
     st.error("The finance dashboard bundle is missing. Rebuild finance-ui/dist before starting the app.")
     st.stop()
-
-js = js_files[0].read_text(encoding="utf-8").replace("</script", "<\\/script")
-css = css_files[0].read_text(encoding="utf-8").replace("</style", "<\\/style")
+css, js = bundle
 user_id = html.escape(str(user.get("id", "local")), quote=True)
 user_email = html.escape(str(user.get("email", "")), quote=True)
 

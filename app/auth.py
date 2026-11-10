@@ -73,7 +73,15 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-_DUMMY = hash_password("dummy-password-for-timing")      # unknown emails still pay for one hash
+_dummy_hash = None
+
+
+def _dummy() -> str:
+    """Hash used so unknown emails still pay for one scrypt (built on first use, not at import)."""
+    global _dummy_hash
+    if _dummy_hash is None:
+        _dummy_hash = hash_password("dummy-password-for-timing")
+    return _dummy_hash
 
 
 # ---------- validation ----------
@@ -124,7 +132,7 @@ def authenticate(email: str, password: str, now: float | None = None):
     with _conn() as c:
         row = c.execute("SELECT id, pw_hash, failed_attempts, locked_until FROM users WHERE email=?", (email,)).fetchone()
         if row is None:
-            verify_password(password, _DUMMY)
+            verify_password(password, _dummy())
             return None, BAD_LOGIN
         uid, stored, fails, locked_until = row
         if locked_until > now:
