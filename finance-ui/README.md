@@ -1,13 +1,14 @@
 # Finance Analyzer UI
 
-A standalone React + TypeScript + Tailwind interface for the Finance Analyzer. The existing Python/Streamlit app remains unchanged.
+React + TypeScript + Tailwind dashboard that the Streamlit app embeds after sign-in (`app/app.py` loads `finance-ui/dist`).
 
-## Run locally (Windows CMD)
+## Run locally
 
-```cmd
-cd /d "C:\Users\prabhas\Downloads\mini project\finance-analyzer\finance-ui"
+```bash
+cd finance-ui
 npm install
-npm run dev
+npm run dev     # Vite dev server
+npm run build   # writes dist/, which app/app.py serves
 ```
 
-Open the local address Vite prints (normally `http://localhost:5174`). The starter CSV is synthetic. Uploaded CSV files are parsed in the browser and saved to this browser's local storage. This UI is not connected to the Streamlit account database or its ML categorizer.
+Uploaded CSV files are parsed in the browser and kept in local storage. Commit the rebuilt `dist/` after changes: the hosted app has no Node build step.

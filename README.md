@@ -40,9 +40,9 @@ ml/        Person A: data + models
   eval_forecast.py  backtest on 11 synthetic statements vs the moving-average baseline
   feedback.py       retrain from user corrections (saved to ml/models/categorizer_user.joblib, gitignored)
   eval_feedback.py  simulated-user evaluation of the correction loop
-app/       Person B: Streamlit app
+app/       Person B: Streamlit app (charts, dashboard, insights, chat_ui, budgets_ui are the older Streamlit tabs; the live UI is finance-ui)
   cleaning.py       any bank CSV -> shared schema
-  app.py            upload, metrics, table, charts, Dashboard tab
+  app.py            entry point: login gate, then embeds the built React dashboard from finance-ui/dist
   charts.py         pure plotly figure functions (light theme only)
   dashboard.py      Dashboard tab: KPIs, charts, unusual transactions, recurring payments
   theme.py / style.css  premium look: dark hero with light streaks, frosted-glass cards and tabs, serif-italic accents (CSS only, no images)
@@ -57,6 +57,7 @@ app/       Person B: Streamlit app
   chat_ui.py        the Ask tab (AI is opt-in per session, 30 AI messages per session)
   insights.py       Anomalies / Subscriptions / Forecast tabs + 'Review & correct categories' panel
   review.py         apply corrections: save, spread to same merchant, retrain, re-predict (no Streamlit, tested)
+finance-ui/ React + TypeScript dashboard; `npm run build` writes dist/, which app.py serves (dist/ is committed because hosting has no Node step)
 data/      synthetic_labeled.csv (truth), synthetic_bank_export.csv (raw upload), eval_labeled.csv (300 rows, never train on it)
 tests/
 ```
