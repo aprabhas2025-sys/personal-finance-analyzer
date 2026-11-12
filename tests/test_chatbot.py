@@ -153,7 +153,8 @@ def test_blocked_or_empty_response_falls_back(tools):
 
 
 def test_no_key_falls_back_and_ai_off_never_builds_client(tools, monkeypatch):
-    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    monkeypatch.setattr(chatbot, "_dotenv_values", lambda: {})
+    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GROQ_API_KEY"):
         monkeypatch.delenv(k, raising=False)
     assert "No Gemini API key" in chatbot.answer("forecast", [], tools, use_ai=True)["note"]
     monkeypatch.setattr(chatbot, "make_client", lambda: (_ for _ in ()).throw(AssertionError("client must not be built when AI is off")))
@@ -161,7 +162,8 @@ def test_no_key_falls_back_and_ai_off_never_builds_client(tools, monkeypatch):
 
 
 def test_make_client_reads_either_key_name(monkeypatch):
-    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    monkeypatch.setattr(chatbot, "_dotenv_values", lambda: {})
+    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GROQ_API_KEY"):
         monkeypatch.delenv(k, raising=False)
     assert chatbot.make_client() is None
     monkeypatch.setenv("GOOGLE_API_KEY", "dummy")
@@ -185,3 +187,65 @@ def test_tool_loop_is_bounded(tools):
 def test_empty_and_long_questions(tools):
     assert chatbot.answer("   ", [], tools)["text"] == chatbot.HELP
     assert chatbot.answer("spend " * 1000, [], tools)["source"] == "rules"
+
+
+# ---------------- Groq path & fallback tests ----------------
+class FakeGroq:
+    """Turn 1 asks for tool; turn 2 answers using the result."""
+    def __init__(self, fail=False):
+        self.fail = fail
+        self.calls = []
+        self.chat = NS(completions=self)
+
+    def create(self, model, messages, tools, **kwargs):
+        if self.fail:
+            raise RuntimeError("429 rate limit")
+        self.calls.append({"model": model, "messages": list(messages)})
+        if len(self.calls) == 1:
+            tc = NS(
+                id="call_123",
+                function=NS(name="spending_summary", arguments=json.dumps({"category": "Groceries", "group_by": "none"})),
+            )
+            msg = NS(role="assistant", content="", tool_calls=[tc])
+            return NS(choices=[NS(message=msg)])
+        tool_content = messages[-1]["content"]
+        res = json.loads(tool_content)["result"]
+        msg = NS(role="assistant", content=f"Groceries: ₹{res['total_spend']:,.0f}", tool_calls=[])
+        return NS(choices=[NS(message=msg)])
+
+
+def test_groq_path_calls_tool_then_answers(tools):
+    c = FakeGroq()
+    out = chatbot.answer("groceries spend?", [], tools, use_ai=True, client=c)
+    assert out["source"] == "ai" and out["provider"] == "groq" and out["text"] == "Groceries: ₹1,500"
+    assert out["tool_calls"] == ["spending_summary"]
+
+
+def test_groq_failure_falls_back_to_gemini_backup(tools):
+    multi = chatbot.MultiAIClient(groq_client=FakeGroq(fail=True), gemini_client=FakeGemini())
+    out = chatbot.answer("groceries spend?", [], tools, use_ai=True, client=multi)
+    assert out["source"] == "ai" and out["provider"] == "gemini"
+    assert out["text"] == "Groceries: ₹1,500"
+    assert "Gemini backup" in out.get("note", "")
+
+
+def test_groq_and_gemini_both_failing_falls_back_to_rules(tools):
+    multi = chatbot.MultiAIClient(groq_client=FakeGroq(fail=True), gemini_client=FakeGemini(fail=True))
+    out = chatbot.answer("what are my subscriptions", [], tools, use_ai=True, client=multi)
+    assert out["source"] == "rules" and "NETFLIX" in out["text"]
+    assert "Groq failed" in out.get("note", "") and "Gemini failed" in out.get("note", "")
+
+
+def test_groq_tools_declaration():
+    gt = chatbot._groq_tools()
+    assert len(gt) == len(TOOL_SCHEMAS)
+    assert gt[0]["type"] == "function"
+    assert "parameters" in gt[0]["function"]
+
+
+def test_resolve_keys_detects_clean_values(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test123")
+    monkeypatch.setenv("GEMINI_API_KEY", "gem_test123")
+    assert chatbot.resolve_groq_key() == "gsk_test123"
+    assert chatbot.resolve_gemini_key() == "gem_test123"
+

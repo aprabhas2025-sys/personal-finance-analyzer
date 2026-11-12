@@ -233,21 +233,54 @@ tr:last-child td { border-bottom: 0; }
 .feature-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 
 /* ---------- Assistant ---------- */
-.chat { max-width: 564px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 14px; }
-.messages { display: flex; flex-direction: column; gap: 13px; min-height: 188px; max-height: 52vh; overflow-y: auto; padding-right: 3px; }
-.msg { display: flex; gap: 10px; align-items: flex-start; }
-.msg-avatar { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
-.msg p { padding: 10px 13px; border-radius: 12px; background: var(--surface-2); font-size: 12px; line-height: 1.6; }
+.chat { max-width: 740px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.messages { display: flex; flex-direction: column; gap: 14px; min-height: 200px; max-height: 58vh; overflow-y: auto; padding-right: 4px; }
+.msg { display: flex; gap: 11px; align-items: flex-start; }
+.msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-top: 2px; }
+.msg-content { display: flex; flex-direction: column; gap: 5px; max-width: 88%; }
+.msg-tag { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 4px; align-self: flex-start; background: var(--accent-soft); color: var(--accent); }
+.msg-tag.gemini { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.msg-tag.rules { background: var(--surface-2); color: var(--muted); }
+.msg-bubble { padding: 11px 15px; border-radius: 13px; background: var(--surface-2); font-size: 12.5px; line-height: 1.65; color: var(--text); border: 1px solid var(--border); overflow-x: auto; }
 .msg.from-user { flex-direction: row-reverse; }
 .msg.from-user .msg-avatar { background: var(--surface-2); color: var(--muted); }
-.msg.from-user p { background: var(--accent-soft); }
+.msg.from-user .msg-bubble { background: var(--accent-soft); border-color: rgba(20, 184, 166, 0.25); color: var(--text); }
+.msg.from-user .msg-content { align-items: flex-end; }
+
+/* Markdown styling inside message bubbles */
+.markdown-body { font-size: 12.5px; line-height: 1.65; word-break: break-word; }
+.markdown-body p { margin: 0 0 8px 0; }
+.markdown-body p:last-child { margin-bottom: 0; }
+.markdown-body strong { color: var(--text); font-weight: 600; }
+.markdown-body em { font-style: italic; }
+.markdown-body ul, .markdown-body ol { margin: 6px 0 8px 18px; padding: 0; }
+.markdown-body li { margin-bottom: 4px; }
+.markdown-body li:last-child { margin-bottom: 0; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { margin: 10px 0 6px 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.markdown-body code { background: rgba(0, 0, 0, 0.2); padding: 2px 5px; border-radius: 4px; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, monospace; }
+.markdown-body pre { background: rgba(0, 0, 0, 0.25); padding: 8px 10px; border-radius: 8px; overflow-x: auto; margin: 6px 0; }
+.markdown-body blockquote { border-left: 3px solid var(--accent); margin: 6px 0; padding-left: 10px; color: var(--muted); }
+.markdown-body table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; border-radius: 8px; overflow: hidden; background: rgba(0, 0, 0, 0.15); border: 1px solid var(--border); }
+.markdown-body th { background: var(--surface); color: var(--accent); padding: 8px 11px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+.markdown-body td { padding: 7px 11px; border-bottom: 1px solid var(--border); }
+.markdown-body tr:last-child td { border-bottom: none; }
+.markdown-body tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+
 .suggestions { display: flex; flex-wrap: wrap; gap: 7px; }
-.suggestions button { min-height: 29px; padding: 0 12px; border: 1px solid var(--border); border-radius: 722px; background: var(--surface); font-size: 11px; }
-.suggestions button:hover { border-color: var(--accent-bright); }
+.suggestions button { min-height: 29px; padding: 0 12px; border: 1px solid var(--border); border-radius: 722px; background: var(--surface); font-size: 11px; transition: border-color 0.15s, color 0.15s; }
+.suggestions button:hover { border-color: var(--accent-bright); color: var(--accent-bright); }
 .chat-input { display: flex; gap: 7px; }
-.chat-input input { flex: 1; min-width: 0; height: 37px; padding: 0 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 12px; }
-.chat-input button { width: 37px; height: 37px; border: 0; border-radius: 10px; display: grid; place-items: center; background: var(--accent-bright); color: #04201c; }
+.chat-input input { flex: 1; min-width: 0; height: 38px; padding: 0 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 12px; }
+.chat-input input:focus { outline: none; border-color: var(--accent); }
+.chat-input button { width: 38px; height: 38px; border: 0; border-radius: 10px; display: grid; place-items: center; background: var(--accent-bright); color: #04201c; cursor: pointer; transition: transform 0.1s, opacity 0.15s; }
+.chat-input button:hover { opacity: 0.9; }
+.chat-input button:active { transform: scale(0.96); }
 .chat-foot { font-size: 11px; color: var(--muted); }
+.typing-dots { display: inline-flex; gap: 4px; align-items: center; padding: 6px 8px; }
+.typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 0.8s infinite alternate; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.1); } }
 
 /* ---------- Empty state & misc ---------- */
 .empty-state { max-width: 405px; margin: 29px auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 35px 23px; }

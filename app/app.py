@@ -1,5 +1,6 @@
 """Signed-in Streamlit gate and embedded finance dashboard."""
 import html
+import json
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -10,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 import streamlit as st
 import streamlit.components.v1 as components
 
-from app import landing
+from app import chatbot, landing
 
 st.set_page_config(page_title="Personal Finance Analyzer", page_icon="📈", layout="wide")
 user = landing.require_login()  # Keep the existing 3D landing, sign-in, and sign-up flow.
@@ -38,8 +39,15 @@ if bundle is None:
     st.error("The finance dashboard bundle is missing. Rebuild finance-ui/dist before starting the app.")
     st.stop()
 css, js = bundle
-user_id = html.escape(str(user.get("id", "local")), quote=True)
-user_email = html.escape(str(user.get("email", "")), quote=True)
+user_id = html.escape(str((user or {}).get("id", "local")), quote=True)
+user_email = html.escape(str((user or {}).get("email", "")), quote=True)
+
+ai_config_json = json.dumps({
+    "groqKey": chatbot.resolve_groq_key() or "",
+    "groqModel": chatbot.GROQ_MODEL,
+    "geminiKey": chatbot.resolve_gemini_key() or "",
+    "geminiModel": chatbot.GEMINI_MODEL,
+})
 
 page = (
     "<!doctype html><html lang='en'><head><meta charset='UTF-8'>"
@@ -51,6 +59,7 @@ page = (
     ".topbar{padding-right:150px!important;}@media(max-width:640px){.topbar{padding-right:104px!important;}}"
     "</style></head><body>"
     f"<div id='root' data-user-id='{user_id}' data-user-email='{user_email}'></div>"
+    f"<script>window.__FINANCE_AI__ = {ai_config_json};</script>"
     f"<script type='module'>{js}</script></body></html>"
 )
 
