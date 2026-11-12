@@ -1,2 +1,3 @@
 # Runtime only (what Render installs). The live app needs just Streamlit; pandas/numpy come with it.
 streamlit>=1.37
+groq>=0.11

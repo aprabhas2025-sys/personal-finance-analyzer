@@ -12,7 +12,9 @@ import pandas as pd
 
 from app.chat_tools import TOOL_SCHEMAS, ChatTools
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")   # check Google AI Studio for current free-tier model names
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+MODEL = GEMINI_MODEL   # check Google AI Studio / Groq console for current model names
 MAX_TOOL_ROUNDS = 5
 MAX_HISTORY = 10          # messages kept per request
 
@@ -137,13 +139,31 @@ def rule_based(question: str, tools: ChatTools) -> dict:
 
 
 # ---------------- AI path ----------------
-def _dotenv_api_key() -> str | None:
-    """Read only a Gemini key from the project .env file; never log or expose its value."""
+PLACEHOLDER_KEYS = {
+    "replace_with_your_key",
+    "replace_with_your_groq_key",
+    "replace_with_your_gemini_key",
+    "your_groq_api_key_here",
+    "your_gemini_api_key_here",
+}
+
+
+def _clean_key(val: str | None) -> str | None:
+    if not val:
+        return None
+    val = val.strip()
+    if not val or val in PLACEHOLDER_KEYS or val.startswith("replace_with_") or val.startswith("your_"):
+        return None
+    return val
+
+
+def _dotenv_values() -> dict[str, str]:
     path = Path(__file__).resolve().parents[1] / ".env"
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return None
+        return {}
+    res = {}
     for line in lines:
         item = line.strip()
         if not item or item.startswith("#"):
@@ -151,48 +171,136 @@ def _dotenv_api_key() -> str | None:
         if item.startswith("export "):
             item = item[7:].lstrip()
         name, separator, value = item.partition("=")
-        if not separator or name.strip() not in {"GEMINI_API_KEY", "GOOGLE_API_KEY"}:
+        if not separator:
             continue
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
+        k = name.strip()
+        v = value.strip()
+        if len(v) >= 2 and v[0] == v[-1] and v[0] in {"'", '"'}:
+            v = v[1:-1]
         else:
-            value = value.split("#", 1)[0].strip()
-        return value or None
+            v = v.split("#", 1)[0].strip()
+        if v:
+            res[k] = v
+    return res
+
+
+def _dotenv_api_key(names=("GEMINI_API_KEY", "GOOGLE_API_KEY")) -> str | None:
+    """Read a key from the project .env file; never log or expose its value."""
+    vals = _dotenv_values()
+    for name in names:
+        val = _clean_key(vals.get(name))
+        if val:
+            return val
     return None
 
 
-def resolve_api_key(secrets=None) -> str | None:
-    """Find a key in process environment, Streamlit secrets, then the local .env file."""
+def resolve_groq_key(secrets=None) -> str | None:
+    """Resolve Groq API key from environment, Streamlit secrets, or .env file."""
+    val = _clean_key(os.environ.get("GROQ_API_KEY"))
+    if val:
+        return val
+    if secrets is not None:
+        try:
+            val = _clean_key(str(secrets.get("GROQ_API_KEY", "") or ""))
+            if val:
+                return val
+        except Exception:
+            pass
+        try:
+            section = secrets.get("groq", {})
+            val = _clean_key(str(section.get("api_key", "") or "") if hasattr(section, "get") else "")
+            if val:
+                return val
+        except Exception:
+            pass
+    return _dotenv_api_key(names=("GROQ_API_KEY",))
+
+
+def resolve_gemini_key(secrets=None) -> str | None:
+    """Resolve Gemini API key from environment, Streamlit secrets, or .env file."""
     for name in ("GOOGLE_API_KEY", "GEMINI_API_KEY"):
-        value = os.environ.get(name, "").strip()
-        if value:
-            return value
+        val = _clean_key(os.environ.get(name))
+        if val:
+            return val
     if secrets is not None:
         for name in ("GOOGLE_API_KEY", "GEMINI_API_KEY"):
             try:
-                value = str(secrets.get(name, "") or "").strip()
+                val = _clean_key(str(secrets.get(name, "") or ""))
+                if val:
+                    return val
             except Exception:
-                value = ""
-            if value:
-                return value
+                pass
         try:
             section = secrets.get("gemini", {})
-            value = str(section.get("api_key", "") or "").strip() if hasattr(section, "get") else ""
-            if value:
-                return value
+            val = _clean_key(str(section.get("api_key", "") or "") if hasattr(section, "get") else "")
+            if val:
+                return val
         except Exception:
             pass
-    return _dotenv_api_key()
+    return _dotenv_api_key(names=("GEMINI_API_KEY", "GOOGLE_API_KEY"))
 
 
-def make_client(api_key: str | None = None):
-    """Create a Gemini client, or return None when no supported key source is configured."""
-    key = (api_key or resolve_api_key() or "").strip()
+def resolve_api_key(secrets=None) -> str | None:
+    """Find a key in process environment, Streamlit secrets, then the local .env file.
+    Prefers Groq if configured, falls back to Gemini key."""
+    return resolve_groq_key(secrets) or resolve_gemini_key(secrets)
+
+
+def make_gemini_client(api_key: str | None = None):
+    """Create a Gemini client, or return None when no key is configured."""
+    key = _clean_key(api_key or resolve_gemini_key() or "")
     if not key:
         return None
     from google import genai
     return genai.Client(api_key=key)
+
+
+def make_groq_client(api_key: str | None = None):
+    """Create a Groq client, or return None when no key is configured."""
+    key = _clean_key(api_key or resolve_groq_key() or "")
+    if not key:
+        return None
+    from groq import Groq
+    return Groq(api_key=key)
+
+
+def make_client(api_key: str | None = None):
+    """Backwards-compatible Gemini client builder."""
+    return make_gemini_client(api_key)
+
+
+class MultiAIClient:
+    """Encapsulates primary (Groq) and backup (Gemini) clients and model choices."""
+    def __init__(self, groq_client=None, gemini_client=None,
+                 groq_model: str | None = None, gemini_model: str | None = None):
+        self.groq_client = groq_client
+        self.gemini_client = gemini_client
+        vals = _dotenv_values()
+        self.groq_model = groq_model or os.environ.get("GROQ_MODEL") or vals.get("GROQ_MODEL") or GROQ_MODEL
+        self.gemini_model = gemini_model or os.environ.get("GEMINI_MODEL") or vals.get("GEMINI_MODEL") or GEMINI_MODEL
+
+    @property
+    def is_available(self) -> bool:
+        return self.groq_client is not None or self.gemini_client is not None
+
+
+def make_multi_client(secrets=None, groq_api_key: str | None = None, gemini_api_key: str | None = None) -> MultiAIClient:
+    """Create a MultiAIClient with Groq as primary and Gemini as backup."""
+    g_key = groq_api_key or resolve_groq_key(secrets)
+    gem_key = gemini_api_key or resolve_gemini_key(secrets)
+    groq_client = None
+    gemini_client = None
+    if g_key:
+        try:
+            groq_client = make_groq_client(g_key)
+        except Exception:
+            groq_client = None
+    if gem_key:
+        try:
+            gemini_client = make_gemini_client(gem_key)
+        except Exception:
+            gemini_client = None
+    return MultiAIClient(groq_client=groq_client, gemini_client=gemini_client)
 
 
 def _ai_error_hint(error: Exception) -> str:
@@ -201,12 +309,26 @@ def _ai_error_hint(error: Exception) -> str:
     if code in (401, 403) or "api key not valid" in detail or "invalid api key" in detail:
         return "Gemini rejected the API key or its permissions. Check the key in .env or Streamlit secrets."
     if code == 404 or "model not found" in detail:
-        return f"Gemini model '{MODEL}' was not found. Check GEMINI_MODEL or use the default model."
+        return f"Gemini model '{GEMINI_MODEL}' was not found. Check GEMINI_MODEL or use the default model."
     if code == 429 or "quota" in detail or "rate limit" in detail:
         return "Gemini's request quota or rate limit was reached. Try again later or check Google AI Studio usage."
     if isinstance(error, ImportError):
         return "The Google Gen AI SDK is missing. Install the project's requirements."
     return f"Gemini request failed ({type(error).__name__}). Check the key, model, and network connection."
+
+
+def _groq_error_hint(error: Exception) -> str:
+    code = getattr(error, "status_code", None) or getattr(error, "code", None)
+    detail = str(error).lower()
+    if code in (401, 403) or "invalid_api_key" in detail or "api key" in detail:
+        return "Groq rejected the API key. Check GROQ_API_KEY in .env or Streamlit secrets."
+    if code == 404 or ("model" in detail and "not found" in detail):
+        return f"Groq model was not found. Check GROQ_MODEL in .env or use '{GROQ_MODEL}'."
+    if code == 429 or "rate limit" in detail or "quota" in detail:
+        return "Groq rate limit reached."
+    if isinstance(error, ImportError):
+        return "The groq library is missing. Install it with `pip install groq`."
+    return f"Groq request failed ({type(error).__name__})."
 
 
 def _declarations():
@@ -219,7 +341,24 @@ def _declarations():
     return out
 
 
-def llm_answer(question: str, history: list, tools: ChatTools, client, model: str = MODEL) -> dict:
+def _groq_tools():
+    out = []
+    for t in TOOL_SCHEMAS:
+        schema = dict(t["input_schema"])
+        if not schema.get("properties"):
+            schema = {"type": "object", "properties": {}}
+        out.append({
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": schema,
+            }
+        })
+    return out
+
+
+def llm_answer(question: str, history: list, tools: ChatTools, client, model: str = GEMINI_MODEL) -> dict:
     from google.genai import types
     contents = [types.Content(role="user" if m["role"] == "user" else "model", parts=[types.Part(text=m["content"])])
                 for m in history[-MAX_HISTORY:] if m.get("content")]
@@ -235,31 +374,141 @@ def llm_answer(question: str, history: list, tools: ChatTools, client, model: st
         fcs = resp.function_calls
         if not fcs:
             text = (resp.text or "").strip()
-            return {"text": text or HELP, "source": "ai", "tool_calls": calls}
+            return {"text": text or HELP, "source": "ai", "provider": "gemini", "tool_calls": calls}
         contents.append(resp.candidates[0].content)                     # keep the model turn exactly as returned
         parts = []
         for fc in fcs:
             calls.append(fc.name)
             parts.append(types.Part.from_function_response(name=fc.name, response={"result": tools.run(fc.name, dict(fc.args or {}))}))
         contents.append(types.Content(role="user", parts=parts))
-    return {"text": "That needed more steps than I allow. Try a narrower question.", "source": "ai", "tool_calls": calls}
+    return {"text": "That needed more steps than I allow. Try a narrower question.", "source": "ai", "provider": "gemini", "tool_calls": calls}
 
 
-def answer(question: str, history: list, tools: ChatTools, use_ai: bool = False, client=None, model: str = MODEL) -> dict:
-    """Returns {text, source: 'ai'|'rules', tool_calls, note?}. AI failures fall back to rules, never crash the chat."""
+def groq_answer(question: str, history: list, tools: ChatTools, client, model: str = GROQ_MODEL) -> dict:
+    import json
+    messages = [{"role": "system", "content": SYSTEM}]
+    for m in history[-MAX_HISTORY:]:
+        if m.get("content"):
+            role = "user" if m.get("role") == "user" else "assistant"
+            messages.append({"role": role, "content": m["content"]})
+    messages.append({"role": "user", "content": question})
+
+    calls = []
+    tools_def = _groq_tools()
+
+    for _ in range(MAX_TOOL_ROUNDS):
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools_def,
+            tool_choice="auto",
+            max_tokens=800,
+            temperature=0.2,
+        )
+        if not getattr(response, "choices", None):
+            raise RuntimeError("empty response from Groq")
+        choice = response.choices[0]
+        msg = choice.message
+        if not getattr(msg, "tool_calls", None):
+            text = (getattr(msg, "content", "") or "").strip()
+            return {"text": text or HELP, "source": "ai", "provider": "groq", "tool_calls": calls}
+
+        assistant_msg = {"role": "assistant", "content": getattr(msg, "content", "") or "", "tool_calls": []}
+        for tc in msg.tool_calls:
+            assistant_msg["tool_calls"].append({
+                "id": tc.id,
+                "type": "function",
+                "function": {
+                    "name": tc.function.name,
+                    "arguments": tc.function.arguments,
+                }
+            })
+        messages.append(assistant_msg)
+
+        for tc in msg.tool_calls:
+            fn_name = tc.function.name
+            calls.append(fn_name)
+            raw_args = tc.function.arguments
+            if isinstance(raw_args, str):
+                try:
+                    args = json.loads(raw_args or "{}")
+                except Exception:
+                    args = {}
+            elif isinstance(raw_args, dict):
+                args = raw_args
+            else:
+                args = {}
+            res = tools.run(fn_name, args)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "name": fn_name,
+                "content": json.dumps({"result": res}),
+            })
+
+    return {"text": "That needed more steps than I allow. Try a narrower question.", "source": "ai", "provider": "groq", "tool_calls": calls}
+
+
+def answer(question: str, history: list, tools: ChatTools, use_ai: bool = False,
+           client=None, model: str | None = None) -> dict:
+    """Returns {text, source: 'ai'|'rules', tool_calls, note?, provider?}. AI failures fall back to backup or rules, never crash the chat."""
     question = (question or "").strip()[:500]
     if not question:
         return {"text": HELP, "source": "rules", "tool_calls": []}
-    if use_ai:
-        try:
-            client = client or make_client()
-            if client is None:
+    if not use_ai:
+        return rule_based(question, tools)
+
+    # 1. Custom single client explicitly passed (e.g. tests passing FakeGemini or FakeGroq)
+    if client is not None and not isinstance(client, MultiAIClient):
+        if hasattr(client, "chat") and hasattr(client.chat, "completions"):
+            try:
+                return groq_answer(question, history, tools, client, model=model or GROQ_MODEL)
+            except Exception as e:
                 out = rule_based(question, tools)
-                out["note"] = "No Gemini API key configured; answered without AI. Add GEMINI_API_KEY to the environment, .env, or Streamlit secrets."
+                out["note"] = f"Groq unavailable: {_groq_error_hint(e)} Used the built-in answer instead."
                 return out
-            return llm_answer(question, history, tools, client, model)
+        try:
+            out = llm_answer(question, history, tools, client, model=model or GEMINI_MODEL)
+            out["provider"] = "gemini"
+            return out
         except Exception as e:
             out = rule_based(question, tools)
             out["note"] = f"Gemini unavailable: {_ai_error_hint(e)} Used the built-in answer instead."
             return out
-    return rule_based(question, tools)
+
+    # 2. Multi-client resolution (Groq primary -> Gemini backup -> rules)
+    multi = client if isinstance(client, MultiAIClient) else make_multi_client()
+    groq_c = multi.groq_client
+    gemini_c = multi.gemini_client
+
+    if groq_c is None and gemini_c is None:
+        out = rule_based(question, tools)
+        out["note"] = "No Gemini API key or Groq API key configured; answered without AI. Add GROQ_API_KEY or GEMINI_API_KEY to the environment, .env, or Streamlit secrets."
+        return out
+
+    groq_err = None
+    if groq_c is not None:
+        try:
+            return groq_answer(question, history, tools, groq_c, model=multi.groq_model)
+        except Exception as e:
+            groq_err = e
+
+    if gemini_c is not None:
+        try:
+            out = llm_answer(question, history, tools, gemini_c, model=multi.gemini_model)
+            out["provider"] = "gemini"
+            if groq_err is not None:
+                out["note"] = f"Groq unavailable ({_groq_error_hint(groq_err)}). Answered using Gemini backup."
+            return out
+        except Exception as e:
+            gemini_err = e
+            out = rule_based(question, tools)
+            if groq_err is not None:
+                out["note"] = f"AI unavailable: Groq failed ({_groq_error_hint(groq_err)}) and Gemini failed ({_ai_error_hint(gemini_err)}). Used the built-in answer instead."
+            else:
+                out["note"] = f"Gemini unavailable: {_ai_error_hint(gemini_err)} Used the built-in answer instead."
+            return out
+
+    out = rule_based(question, tools)
+    out["note"] = f"Groq unavailable: {_groq_error_hint(groq_err)} Used the built-in answer instead."
+    return out
